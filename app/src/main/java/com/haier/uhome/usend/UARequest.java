@@ -33,20 +33,14 @@ public class UARequest {
     private static final String APP_VERSIOIN = "2.1.1-2016052401";
 
     private static UARequest sInstance;
-    //默认最大时间 2016-6-20 18:00:00
-    private static long MAX_TIME = 1466416800000L;
-    //默认最小时间 2016-6-20 8:00:00
-    private static long MIN_TIME = 1466380800000L;
+    //上报数据 默认最大时间 2016-6-20 18:00:00
+    private static long maxTime = 1466416800000L;
+    //上报数据 默认最小时间 2016-6-20 8:00:00
+    private static long minTime = 1466380800000L;
 
     private static final long INV_TIME = 1111011010111L;
 
     private Random random;
-
-    private int successAppStartCount = 0;
-    private int failAppStartCount = 0;
-    private int successUserStartCount = 0;
-    private int failUserStartCount = 0;
-
 
     public static UARequest getInstance() {
         if (sInstance == null) {
@@ -59,7 +53,7 @@ public class UARequest {
         random = new Random(System.currentTimeMillis());
 
         //最大时间当前时间
-        MAX_TIME = System.currentTimeMillis();
+        maxTime = System.currentTimeMillis();
         Calendar calendar = Calendar.getInstance();
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
@@ -67,67 +61,14 @@ public class UARequest {
         calendar.set(year, month, day, 8, 0, 0);
 
         //最小时间当天8点
-        MIN_TIME = calendar.getTimeInMillis();
+        minTime = calendar.getTimeInMillis();
 
-        if (MIN_TIME >= MAX_TIME) {
-            MIN_TIME = MAX_TIME - 60 * 60 * 1000;
+        if (minTime >= maxTime) {
+            minTime = maxTime - 60 * 60 * 1000;
         }
     }
 
-    public void reset() {
-        successAppStartCount = 0;
-        failAppStartCount = 0;
-        successUserStartCount = 0;
-        failUserStartCount = 0;
-    }
-
-    public int getSuccessAppStartCount() {
-        return successAppStartCount;
-    }
-
-    public int getFailAppStartCount() {
-        return failAppStartCount;
-    }
-
-    public int getSuccessUserStartCount() {
-        return successUserStartCount;
-    }
-
-    public int getFailUserStartCount() {
-        return failUserStartCount;
-    }
-
-    /**
-     * 启动事件成功
-     */
-    private void increateSuccAppStartCount() {
-        //synchronized (this){
-        successAppStartCount++;
-        //}
-    }
-
-    private void increateFailAppStartCount() {
-        //synchronized (this){
-        failAppStartCount++;
-        //}
-    }
-
-    /**
-     * 用户启动事件成功
-     */
-    private void increateSuccUserStartCount() {
-        //synchronized (this){
-        successUserStartCount++;
-        //}
-    }
-
-    private void increateAppStartCount() {
-        //synchronized (this){
-        failUserStartCount++;
-        //}
-    }
-
-    public void sendRequset(Context context, final String userId) {
+    public void sendRequset(Context context, final String userId, final RequestResult callback) {
         //请求头里的session
         long session = generateSession();
         long tmp = session;
@@ -145,13 +86,17 @@ public class UARequest {
                 .RequestTextCallback() {
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, String response) {
-                    increateSuccAppStartCount();
+                    if(null != callback){
+                        callback.onSuccess(statusCode, response);
+                    }
                     Log.i(TAG, "UA-MI send app start success pud = " + userId + ", pcd=" + cid);
                 }
 
                 @Override
                 public void onFailure(int statusCode, Header[] headers, String response) {
-                    increateFailAppStartCount();
+                    if(null != callback){
+                        callback.onFailure(statusCode, response);
+                    }
                     Log.i(TAG, "UA-MI send app start fail pud = " + userId + ", pcd=" + cid);
                 }
             });
@@ -184,13 +129,6 @@ public class UARequest {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }*/
-
-        Log.i(TAG, "result:" + getSendResult());
-    }
-
-    public String getSendResult() {
-        return "successUserStartCount = " + successUserStartCount + ", failUserStartCount=" + failUserStartCount
-            + ", successAppStartCount=" + successAppStartCount + ", failAppStartCount=" + failAppStartCount;
     }
 
     /**
@@ -278,11 +216,11 @@ public class UARequest {
      * @return
      */
     public long generateSession() {
-        long max = MAX_TIME - MIN_TIME;
+        long max = maxTime - minTime;
         long rand = Math.abs(random.nextLong());
-        rand = MIN_TIME + rand % max;
-        if (rand > MAX_TIME) {
-            rand = MAX_TIME;
+        rand = minTime + rand % max;
+        if (rand > maxTime) {
+            rand = maxTime;
         }
         return rand;
     }
@@ -332,5 +270,10 @@ public class UARequest {
         }
         return hexValue.toString();
 
+    }
+
+    public interface RequestResult{
+        void onSuccess(int code, String response);
+        void onFailure(int code, String response);
     }
 }

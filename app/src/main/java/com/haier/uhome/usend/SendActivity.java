@@ -8,10 +8,6 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import java.util.Calendar;
-import java.util.Date;
 
 public class SendActivity extends Activity {
 
@@ -23,7 +19,9 @@ public class SendActivity extends Activity {
     public static final String KEY_SUCCES_COUNT = "sucess_count";
     public static final String KEY_FIAL_COUNT = "fial_count";
 
-    private TextView txtView;
+    private TextView txtResult;
+    private TextView txtSendTotal;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,12 +35,19 @@ public class SendActivity extends Activity {
             }
         });
 
-        txtView = (TextView) findViewById(R.id.txt);
+        txtResult = (TextView) findViewById(R.id.txt_result);
+        txtSendTotal = (TextView) findViewById(R.id.txt_send_total);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_DONE);
         filter.addAction(ACTION_PROGRESS);
         registerReceiver(receiver, filter);
+
+        if(UAService.isRunning()){
+            setSendButtnEnable(false);
+        }
+        refreshTotalSendText();
+        refreshCurrentSendCount(0, 0);
     }
 
     @Override
@@ -52,9 +57,6 @@ public class SendActivity extends Activity {
     }
 
     private void startUaService() {
-
-        txtView.setText("");
-
         Intent it = new Intent();
         it.setClass(this, UAService.class);
         startService(it);
@@ -65,17 +67,32 @@ public class SendActivity extends Activity {
         findViewById(R.id.btn).setEnabled(enable);
     }
 
+    private void refreshTotalSendText(){
+        String total = String.format("今天已经发送成功：%d; 失败：%d",
+            UAStatisticClient.getTodaySuccCount(this),
+            UAStatisticClient.getTodayFailCount(this));
+        txtSendTotal.setText(total);
+    }
+
+    private void refreshCurrentSendCount(int succCount, int failCount){
+        txtResult.setText("本次发送成功条数：" + succCount + "; 失败条数：" + failCount);
+    }
+
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent != null) {
                 if (ACTION_DONE.equals(intent.getAction())) {
                     setSendButtnEnable(true);
+                    int succCount = intent.getIntExtra(KEY_SUCCES_COUNT, 0);
+                    int failCount = intent.getIntExtra(KEY_FIAL_COUNT, 0);
+                    refreshCurrentSendCount(succCount, failCount);
+                    refreshTotalSendText();
                 } else if (ACTION_PROGRESS.equals(intent.getAction())) {
                     int succCount = intent.getIntExtra(KEY_SUCCES_COUNT, 0);
                     int failCount = intent.getIntExtra(KEY_FIAL_COUNT, 0);
-
-                    txtView.setText("成功条数：" + succCount + "；失败条数：" + failCount);
+                    refreshCurrentSendCount(succCount, failCount);
+                    refreshTotalSendText();
                 } else if(ACTION_CANCLE.equals(intent.getAction())){
                     setSendButtnEnable(true);
                 }
