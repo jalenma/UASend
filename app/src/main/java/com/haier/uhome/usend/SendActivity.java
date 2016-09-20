@@ -1,13 +1,24 @@
 package com.haier.uhome.usend;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.view.View;
+import android.text.TextUtils;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+
+import com.haier.uhome.usend.utils.PreferencesConstants;
+import com.haier.uhome.usend.utils.PreferencesUtils;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 public class SendActivity extends Activity {
 
@@ -16,27 +27,26 @@ public class SendActivity extends Activity {
     public static final String ACTION_CANCLE = "com.haier.usend.CANCLE_DONE";
     public static final String ACTION_DONE = "com.haier.usend.SEND_DONE";
     public static final String ACTION_PROGRESS = "com.haier.usend.SEND_PROGERESS";
-    public static final String KEY_SUCCES_COUNT = "sucess_count";
-    public static final String KEY_FIAL_COUNT = "fial_count";
+    public static final String EXTRA_SUCCES_COUNT = "sucess_count";
+    public static final String EXTRA_FIAL_COUNT = "fial_count";
 
-    private TextView txtResult;
-    private TextView txtSendTotal;
+    @BindView(R.id.tv_current_result)
+    TextView tvResult;
+    @BindView(R.id.tv_send_total)
+    TextView tvSendTotal;
+    @BindView(R.id.et_run_count)
+    EditText etRunCount;
+    @BindView(R.id.et_run_time)
+    EditText etRunTime;
+    @BindView(R.id.btn_send)
+    Button btnSend;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_send);
-
-        findViewById(R.id.btn).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startUaService();
-            }
-        });
-
-        txtResult = (TextView) findViewById(R.id.txt_result);
-        txtSendTotal = (TextView) findViewById(R.id.txt_send_total);
+        ButterKnife.bind(this);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_DONE);
@@ -48,6 +58,9 @@ public class SendActivity extends Activity {
         }
         refreshTotalSendText();
         refreshCurrentSendCount(0, 0);
+
+        etRunCount.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0)));
+        etRunTime.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0)));
     }
 
     @Override
@@ -56,26 +69,41 @@ public class SendActivity extends Activity {
         super.onDestroy();
     }
 
+    @OnClick(R.id.btn_send)
+    void startSend(){
+        String runTime = etRunTime.getText().toString().trim();
+        if(!TextUtils.isEmpty(runTime)){
+            PreferencesUtils.putInt(this, PreferencesConstants.RUN_TIME, Integer.valueOf(runTime));
+        }
+        String runCount = etRunCount.getText().toString().trim();
+        if(!TextUtils.isEmpty(runCount)){
+            PreferencesUtils.putInt(this, PreferencesConstants.RUN_COUNT, Integer.valueOf(runCount));
+        }
+
+        startUaService();
+    }
+
     private void startUaService() {
-        Intent it = new Intent();
-        it.setClass(this, UAService.class);
-        startService(it);
-        setSendButtnEnable(false);
+        showConfirmDialog();
+//        Intent it = new Intent();
+//        it.setClass(this, UAService.class);
+//        startService(it);
+//        setSendButtnEnable(false);
     }
 
     private void setSendButtnEnable(boolean enable) {
-        findViewById(R.id.btn).setEnabled(enable);
+        btnSend.setEnabled(enable);
     }
 
     private void refreshTotalSendText(){
         String total = String.format("今天已经发送成功：%d; 失败：%d",
             UAStatisticClient.getTodaySuccCount(this),
             UAStatisticClient.getTodayFailCount(this));
-        txtSendTotal.setText(total);
+        tvSendTotal.setText(total);
     }
 
     private void refreshCurrentSendCount(int succCount, int failCount){
-        txtResult.setText("本次发送成功条数：" + succCount + "; 失败条数：" + failCount);
+        tvResult.setText("本次发送成功条数：" + succCount + "; 失败条数：" + failCount);
     }
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -84,13 +112,13 @@ public class SendActivity extends Activity {
             if (intent != null) {
                 if (ACTION_DONE.equals(intent.getAction())) {
                     setSendButtnEnable(true);
-                    int succCount = intent.getIntExtra(KEY_SUCCES_COUNT, 0);
-                    int failCount = intent.getIntExtra(KEY_FIAL_COUNT, 0);
+                    int succCount = intent.getIntExtra(EXTRA_SUCCES_COUNT, 0);
+                    int failCount = intent.getIntExtra(EXTRA_FIAL_COUNT, 0);
                     refreshCurrentSendCount(succCount, failCount);
                     refreshTotalSendText();
                 } else if (ACTION_PROGRESS.equals(intent.getAction())) {
-                    int succCount = intent.getIntExtra(KEY_SUCCES_COUNT, 0);
-                    int failCount = intent.getIntExtra(KEY_FIAL_COUNT, 0);
+                    int succCount = intent.getIntExtra(EXTRA_SUCCES_COUNT, 0);
+                    int failCount = intent.getIntExtra(EXTRA_FIAL_COUNT, 0);
                     refreshCurrentSendCount(succCount, failCount);
                     refreshTotalSendText();
                 } else if(ACTION_CANCLE.equals(intent.getAction())){
@@ -99,4 +127,33 @@ public class SendActivity extends Activity {
             }
         }
     };
+
+    private AlertDialog dialog;
+
+    private void showConfirmDialog(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("每条执行时间 1 秒？")
+            .setCancelable(false)
+            .setPositiveButton("继续", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+
+                }
+            })
+            .setNegativeButton("取消", new DialogInterface.OnClickListener(){
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+
+                }
+            });
+
+        dialog = builder.create();
+        dialog.show();
+    }
+
+    private void dismissConfirmDialog(){
+        if(dialog != null){
+            dialog.dismiss();
+        }
+    }
 }

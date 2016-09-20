@@ -13,6 +13,8 @@ import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.setting.ResultCallback;
 import com.haier.uhome.usend.setting.SettingClient;
 import com.haier.uhome.usend.setting.SettingInfo;
+import com.haier.uhome.usend.utils.PreferencesConstants;
+import com.haier.uhome.usend.utils.PreferencesUtils;
 
 import java.util.Random;
 import java.util.Timer;
@@ -37,8 +39,12 @@ public class UAService extends Service {
 
     private static final int MSG_SEND = 0X0001;
 
+    //默认请求时间间隔
+    private static final float DEFAULT_TIME_INTEVAL = 2f;
     //请求时间间隔
-    private static final float TIME_SEP = 2f;
+    private float sendTimeInterval = DEFAULT_TIME_INTEVAL;
+    //请求次数
+    private int sendCount = 0;
 
     private Timer timer;
 
@@ -60,7 +66,7 @@ public class UAService extends Service {
         @Override
         public void run() {
 
-            int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
+            //int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
 
             if (successAppStartCount + failAppStartCount >= sendCount) {
                 timer.cancel();
@@ -109,6 +115,8 @@ public class UAService extends Service {
         Log.i(TAG, "onCreate");
         timer = new Timer();
 
+        loadSendParam();
+
         //获取配置数据
         SettingClient.getInstance().getSettings(this, new ResultCallback<SettingInfo>() {
             @Override
@@ -120,6 +128,7 @@ public class UAService extends Service {
             @Override
             public void onFailure(SettingInfo result) {
                 showToast("获取开关失败");
+                stopSelf();
             }
         });
     }
@@ -152,10 +161,26 @@ public class UAService extends Service {
         alreadySendCount = 0;
     }
 
+
+    private void loadSendParam(){
+        sendCount = PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0);
+        int sendTime = PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0) * 60;
+        if(sendCount < 1){
+            sendTimeInterval = DEFAULT_TIME_INTEVAL;
+        } else {
+            sendTimeInterval = (float) sendTime / (float)sendCount;
+        }
+
+        //避免太频繁
+        if(sendTimeInterval < 0.1f){
+            sendTimeInterval = 0.1f;
+        }
+    }
+
     private void sendRequestTask(){
         boolean uaSwitch = SettingClient.getInstance().getSettingInfo().isUaSwitch();
         boolean otherUaSwitch = SettingClient.getInstance().getSettingInfo().isOtherUaSwitch();
-        int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
+        //int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
 
         reset();
 
@@ -173,7 +198,7 @@ public class UAService extends Service {
         //执行次数
         final int len = sendCount;
 
-        timer.schedule(timerTask, (long) (TIME_SEP * 1000) , (long) (TIME_SEP * 1000));
+        timer.schedule(timerTask, (long) (sendTimeInterval * 1000) , (long) (sendTimeInterval * 1000));
 
         waitTime = 0;
         new Thread("checkfinish") {
@@ -229,8 +254,8 @@ public class UAService extends Service {
         Log.i(TAG, "UA-end, 成功条数：" + succCount + ", failCount=" + failCount);
 
         Intent intent = new Intent(SendActivity.ACTION_DONE);
-        intent.putExtra(SendActivity.KEY_SUCCES_COUNT, succCount);
-        intent.putExtra(SendActivity.KEY_FIAL_COUNT, failCount);
+        intent.putExtra(SendActivity.EXTRA_SUCCES_COUNT, succCount);
+        intent.putExtra(SendActivity.EXTRA_FIAL_COUNT, failCount);
         sendBroadcast(intent);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(UAService.this);
@@ -252,8 +277,8 @@ public class UAService extends Service {
         UAStatisticClient.saveCurrentSendCount(this, deltaSucc, deltaFail);
 
         Intent intent = new Intent(SendActivity.ACTION_PROGRESS);
-        intent.putExtra(SendActivity.KEY_SUCCES_COUNT, succCount);
-        intent.putExtra(SendActivity.KEY_FIAL_COUNT, failCount);
+        intent.putExtra(SendActivity.EXTRA_SUCCES_COUNT, succCount);
+        intent.putExtra(SendActivity.EXTRA_FIAL_COUNT, failCount);
         sendBroadcast(intent);
     }
 
