@@ -1,9 +1,26 @@
 apply plugin: 'com.android.application'
 apply plugin: 'android-apt'
 
+def releaseTime() {
+    return new Date().format("yyyy_MM_dd", TimeZone.getTimeZone("UTC"))
+}
+
 android {
     compileSdkVersion 22
     buildToolsVersion "23.0.2"
+
+    signingConfigs {
+
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../sign/jalen.android.keystore")
+            storePassword "123456"
+            keyAlias "jalen.android.keystore"
+            keyPassword "123456"
+        }
+    }
 
     defaultConfig {
         applicationId "com.haier.uhome.usend"
@@ -16,6 +33,19 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    android.applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                //这里修改apk文件名
+                def fileName = "UASend_${releaseTime()}.apk"
+                output.outputFile = new File(outputFile.parent, fileName)
+                print "outputFile:$outputFile"
+            }
         }
     }
 }
