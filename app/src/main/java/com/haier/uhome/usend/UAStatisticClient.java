@@ -56,7 +56,7 @@ public class UAStatisticClient {
     }
 
     public static int getTodayFailCount(Context context) {
-        Log.i(TAG, "getTodayFailCount = " + PreferencesUtils.getInt(context, getTodayFailSaveKey(), 0));
+        //Log.i(TAG, "getTodayFailCount = " + PreferencesUtils.getInt(context, getTodayFailSaveKey(), 0));
         return PreferencesUtils.getInt(context, getTodayFailSaveKey(), 0);
     }
 
@@ -78,7 +78,7 @@ public class UAStatisticClient {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
-        Log.i(TAG, "getTodayDate " + dateFormat.format(date).toString());
+        //Log.i(TAG, "getTodayDate " + dateFormat.format(date).toString());
         return dateFormat.format(date).toString();
     }
 

@@ -69,10 +69,11 @@ public class UAService extends Service {
 
             //int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
 
-            if (successAppStartCount + failAppStartCount >= sendCount) {
+            if (successAppStartCount + failAppStartCount >= sendCount || alreadySendCount >= sendCount) {
                 timer.cancel();
                 return;
             }
+            alreadySendCount++;
             final String userId = String.valueOf(Math.abs(random.nextLong()));
             Message msg = handler.obtainMessage(MSG_SEND);
             //msg.arg1 = delay;
