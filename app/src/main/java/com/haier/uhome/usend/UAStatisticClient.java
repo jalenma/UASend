@@ -81,4 +81,17 @@ public class UAStatisticClient {
         Log.i(TAG, "getTodayDate " + dateFormat.format(date).toString());
         return dateFormat.format(date).toString();
     }
+
+    /**
+     * 计算频率，返回单位秒
+     * @param count 次数
+     * @param second  时间，秒
+     * @return
+     */
+    public static float calculateFrequency(int count, int second) throws Exception {
+        if(second < 1 || count < 1){
+            throw new Exception("次数count和时间second必须大于0");
+        }
+        return (float)second / (float) count;
+    }
 }

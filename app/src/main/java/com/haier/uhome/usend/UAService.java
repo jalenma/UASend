@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.haier.uhome.usend.log.Log;
@@ -162,22 +163,24 @@ public class UAService extends Service {
     }
 
 
-    private void loadSendParam(){
+    private void loadSendParam() {
         sendCount = PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0);
         int sendTime = PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0) * 60;
-        if(sendCount < 1){
+        try {
+            sendTimeInterval = UAStatisticClient.calculateFrequency(sendCount, sendTime);
+        } catch (Exception e) {
             sendTimeInterval = DEFAULT_TIME_INTEVAL;
-        } else {
-            sendTimeInterval = (float) sendTime / (float)sendCount;
         }
 
+        Log.i(TAG, "loadSendParam count=" + sendCount + ", time=" + sendTime + ", frequence=" + sendTimeInterval);
+
         //避免太频繁
-        if(sendTimeInterval < 0.1f){
+        if (sendTimeInterval < 0.1f) {
             sendTimeInterval = 0.1f;
         }
     }
 
-    private void sendRequestTask(){
+    private void sendRequestTask() {
         boolean uaSwitch = SettingClient.getInstance().getSettingInfo().isUaSwitch();
         boolean otherUaSwitch = SettingClient.getInstance().getSettingInfo().isOtherUaSwitch();
         //int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
@@ -198,7 +201,7 @@ public class UAService extends Service {
         //执行次数
         final int len = sendCount;
 
-        timer.schedule(timerTask, (long) (sendTimeInterval * 1000) , (long) (sendTimeInterval * 1000));
+        timer.schedule(timerTask, (long) (sendTimeInterval * 1000), (long) (sendTimeInterval * 1000));
 
         waitTime = 0;
         new Thread("checkfinish") {
@@ -220,7 +223,7 @@ public class UAService extends Service {
                                 }
                             });
                             break;
-                        }else{
+                        } else {
                             handler.post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -287,7 +290,7 @@ public class UAService extends Service {
         toast.show();
     }
 
-    public static boolean isRunning(){
+    public static boolean isRunning() {
         return isRunning;
     }
 }

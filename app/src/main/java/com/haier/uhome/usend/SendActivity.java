@@ -12,6 +12,7 @@ import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
@@ -40,6 +41,9 @@ public class SendActivity extends Activity {
     EditText etRunTime;
     @BindView(R.id.btn_send)
     Button btnSend;
+
+    int runTime;
+    int runCount;
 
 
     @Override
@@ -71,24 +75,39 @@ public class SendActivity extends Activity {
 
     @OnClick(R.id.btn_send)
     void startSend(){
-        String runTime = etRunTime.getText().toString().trim();
-        if(!TextUtils.isEmpty(runTime)){
-            PreferencesUtils.putInt(this, PreferencesConstants.RUN_TIME, Integer.valueOf(runTime));
+        String timeStr = etRunTime.getText().toString().trim();
+        if(!TextUtils.isEmpty(timeStr)){
+            runTime = Integer.valueOf(timeStr);
         }
-        String runCount = etRunCount.getText().toString().trim();
-        if(!TextUtils.isEmpty(runCount)){
-            PreferencesUtils.putInt(this, PreferencesConstants.RUN_COUNT, Integer.valueOf(runCount));
+        String countStr = etRunCount.getText().toString().trim();
+        if(!TextUtils.isEmpty(countStr)){
+            runCount = Integer.valueOf(countStr);
         }
 
-        startUaService();
+        if(runTime < 1 || runCount < 1){
+            showToast("次数和时间必须大于0");
+            return;
+        }
+
+        try {
+            float frequence = UAStatisticClient.calculateFrequency(runCount, runTime * 60);
+            String msg = "发送时间间隔：" + frequence + "秒，是否继续？";
+            showConfirmDialog(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            showToast(e.getMessage());
+            return;
+        }
     }
 
     private void startUaService() {
-        showConfirmDialog();
-//        Intent it = new Intent();
-//        it.setClass(this, UAService.class);
-//        startService(it);
-//        setSendButtnEnable(false);
+
+        PreferencesUtils.putInt(this, PreferencesConstants.RUN_TIME, runTime);
+        PreferencesUtils.putInt(this, PreferencesConstants.RUN_COUNT, runCount);
+        Intent it = new Intent();
+        it.setClass(this, UAService.class);
+        startService(it);
+        setSendButtnEnable(false);
     }
 
     private void setSendButtnEnable(boolean enable) {
@@ -104,6 +123,10 @@ public class SendActivity extends Activity {
 
     private void refreshCurrentSendCount(int succCount, int failCount){
         tvResult.setText("本次发送成功条数：" + succCount + "; 失败条数：" + failCount);
+    }
+
+    private void showToast(String msg){
+        Toast.makeText(this,"次数和时间必须大于0",Toast.LENGTH_LONG).show();
     }
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -130,14 +153,14 @@ public class SendActivity extends Activity {
 
     private AlertDialog dialog;
 
-    private void showConfirmDialog(){
+    private void showConfirmDialog(String msg){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("每条执行时间 1 秒？")
+        builder.setMessage(msg)
             .setCancelable(false)
-            .setPositiveButton("继续", new DialogInterface.OnClickListener() {
+            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-
+                    startUaService();
                 }
             })
             .setNegativeButton("取消", new DialogInterface.OnClickListener(){
