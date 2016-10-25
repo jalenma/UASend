@@ -3,10 +3,14 @@ package com.haier.uhome.usend;
 import android.os.Environment;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 
 /**
  * @Author: majunling
@@ -27,20 +31,44 @@ public class FileUtil {
             return null;
         }
 
-        StringBuffer buffer = new StringBuffer();
-
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String strLine = null;
-            while ((strLine = reader.readLine()) != null) {
-                buffer.append(strLine).append(",");
-            }
-            reader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            return new String(readFile(file));
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
-        return buffer.toString();
+    }
+
+    public static byte[] readFile (File file) throws IOException{
+        if(null == file || !file.exists()){
+            return null;
+        }
+
+        FileInputStream fileInputStream = new FileInputStream(file);
+        return readInputStream(fileInputStream);
+    }
+
+    public static byte[] readInputStream(InputStream inputStream) throws IOException{
+        if(null == inputStream){
+            return null;
+        }
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        copy(inputStream, byteArrayOutputStream);
+        byte[] out = byteArrayOutputStream.toByteArray();
+        byteArrayOutputStream.close();
+        return out;
+    }
+
+    private static int copy(InputStream input, OutputStream output) throws IOException {
+        int count = 0;
+        int length;
+        byte[] buffer = new byte[4 * 1024];
+        while ((length = input.read(buffer)) != -1) {
+            output.write(buffer, 0, length);
+            count += length;
+        }
+        output.flush();
+        return count;
     }
 }

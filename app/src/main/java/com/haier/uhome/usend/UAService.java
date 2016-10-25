@@ -14,6 +14,7 @@ import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.setting.ResultCallback;
 import com.haier.uhome.usend.setting.SettingClient;
 import com.haier.uhome.usend.setting.SettingInfo;
+import com.haier.uhome.usend.utils.PhoneModel;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
 
@@ -116,7 +117,6 @@ public class UAService extends Service {
         super.onCreate();
         Log.i(TAG, "onCreate");
         timer = new Timer();
-
         loadSendParam();
 
         //获取配置数据

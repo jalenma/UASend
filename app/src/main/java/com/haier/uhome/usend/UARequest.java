@@ -4,6 +4,7 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.haier.uhome.usend.log.Log;
+import com.haier.uhome.usend.utils.PhoneModel;
 
 import org.apache.http.Header;
 import org.apache.http.entity.StringEntity;
@@ -155,7 +156,7 @@ public class UARequest {
         BasicHeader uidHeader = new BasicHeader("uid", userId);
         BasicHeader avHeader = new BasicHeader("av", APP_VERSIOIN);
         BasicHeader chHeader = new BasicHeader("ch", APP_CHANNLE);
-        BasicHeader agHeader = new BasicHeader("ag", "");
+        BasicHeader agHeader = new BasicHeader("ag", PhoneModel.getInstance().getRandomPhoneModel());
 
         BasicHeader conTentType = new BasicHeader("Content-Type", "application/json;charset=UTF-8");
         BasicHeader accCharset = new BasicHeader("Accept-Charset", "UTF-8");
