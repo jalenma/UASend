@@ -160,8 +160,8 @@ public class HttpRequestManager {
     }
 
     public interface RequestTextCallback {
-        void onSuccess(int statusCode, Header[] headers, String response);
         void onFailure(int statusCode, Header[] headers, String response);
+        void onSuccess(int statusCode, Header[] headers, String response);
     }
 
     public interface RequestBinaryCallback {

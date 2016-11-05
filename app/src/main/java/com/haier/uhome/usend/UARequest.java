@@ -69,6 +69,110 @@ public class UARequest {
         }
     }
 
+    public void sendAppAndUserStartBatch(final Context context, final String userId, final RequestResult callback){
+        //请求头里的session, app初始化时生成，后面所有事件事件必须必比session大
+        final long session = generateSession();
+        //请求头里的cid
+        final String cid = generateCid(userId);
+
+        final long appStartEventTime = session + random.nextInt(10100) % 10100;
+        final long userStartEventTime = appStartEventTime + random.nextInt(10100) % 10100;
+
+        final RequestUserStartResult userStartResult = new RequestUserStartResult() {
+            @Override
+            public void onSuccess(int code, String response) {
+                if(null != callback){
+                    callback.onSuccess(code, response);
+                }
+            }
+
+            @Override
+            public void onFailure(int code, String response) {
+                if(null != callback){
+                    callback.onSuccess(code, response);
+                }
+            }
+        };
+
+        RequestAppStartResult appStartResult = new RequestAppStartResult() {
+            @Override
+            public void onSuccess(int code, String response) {
+                sendUserStartRequest(context, session, userStartEventTime, cid, userId, userStartResult);
+            }
+
+            @Override
+            public void onFailure(int code, String response) {
+            }
+        };
+
+        //启动请求
+        sendAppStartRequest(context, session, appStartEventTime, cid, userId, appStartResult);
+    }
+
+    // app启动请求
+    public void sendAppStartRequest(Context context, long session, long appStartEventTime, final String cid,  final
+        String userId, final RequestAppStartResult callback) {
+        //启动请求
+        String requestBody = generateStartJson(getFormateTime(appStartEventTime));
+        Header[] headers = getHeaders("", cid, String.valueOf(session));
+        try {
+            HttpRequestManager.post(context, URL, headers, new StringEntity(requestBody), new HttpRequestManager
+                .RequestTextCallback() {
+                @Override
+                public void onSuccess(int statusCode, Header[] headers, String response) {
+                    if(null != callback){
+                        callback.onSuccess(statusCode, response);
+                    }
+                    Log.i(TAG, "UA-MI send app start success pud = " + userId + ", pcd=" + cid);
+                }
+
+                @Override
+                public void onFailure(int statusCode, Header[] headers, String response) {
+                    if(null != callback){
+                        callback.onFailure(statusCode, response);
+                    }
+                    Log.i(TAG, "UA-MI send app start fail pud = " + userId + ", pcd=" + cid);
+                }
+            });
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //用户启动请求，登录完成后事件
+    public void sendUserStartRequest(Context context, long session, long userStartEventTime, final String cid,
+                                     final String userId, final RequestUserStartResult callback) {
+        String userStartTime = getFormateTime(userStartEventTime);
+        Header[] userHeaders = getHeaders(userId, cid, String.valueOf(session));
+        String userStartBody = generateUserStartJson(userId, userStartTime);
+
+        //user start 事件
+        try {
+            HttpRequestManager.post(context, URL, userHeaders, new StringEntity(userStartBody), new HttpRequestManager
+                .RequestTextCallback() {
+
+                @Override
+                public void onSuccess(int statusCode, Header[] headers, String response) {
+                    if(null != callback){
+                        callback.onSuccess(statusCode, response);
+                    }
+                    Log.i(TAG, "UA-MI send user start success userId = " + userId + ", pcd=" + cid);
+                }
+
+                @Override
+                public void onFailure(int statusCode, Header[] headers, String response) {
+                    if(null != callback){
+                        callback.onFailure(statusCode, response);
+                    }
+                    Log.i(TAG, "UA-MI send user start fail userId = " + userId + ", pcd=" + cid);
+                }
+            });
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Deprecated
     public void sendRequset(Context context, final String userId, final RequestResult callback) {
         //请求头里的session
         long session = generateSession();
@@ -273,7 +377,21 @@ public class UARequest {
 
     }
 
+    public void cancelRequst(Context context){
+        HttpRequestManager.cancelRequest(context);
+    }
+
     public interface RequestResult{
+        void onSuccess(int code, String response);
+        void onFailure(int code, String response);
+    }
+
+    public interface RequestAppStartResult{
+        void onSuccess(int code, String response);
+        void onFailure(int code, String response);
+    }
+
+    public interface RequestUserStartResult{
         void onSuccess(int code, String response);
         void onFailure(int code, String response);
     }

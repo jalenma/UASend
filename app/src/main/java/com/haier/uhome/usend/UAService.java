@@ -6,18 +6,23 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.text.TextUtils;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.Toast;
 
+import com.haier.uhome.usend.events.EventSendStatus;
 import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.setting.ResultCallback;
 import com.haier.uhome.usend.setting.SettingClient;
 import com.haier.uhome.usend.setting.SettingInfo;
-import com.haier.uhome.usend.utils.PhoneModel;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
 
+import org.greenrobot.eventbus.EventBus;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -39,7 +44,13 @@ public class UAService extends Service {
 
     private Random random = new Random(System.currentTimeMillis());
 
-    private static final int MSG_SEND = 0X0001;
+    //进入发送日志循环
+    private static final int MSG_SEND_LOOP = 0X0001;
+    //获取控制开关结束
+    private static final int MSG_FETCH_SWITCH_DONE = 0X0002;
+    //获取user列表结束
+    private static final int MSG_LOAD_USER_DONE = 0X0003;
+
 
     //默认请求时间间隔
     private static final float DEFAULT_TIME_INTEVAL = 2f;
@@ -64,19 +75,25 @@ public class UAService extends Service {
 
     private int alreadySendCount = 0;
 
-    private TimerTask timerTask = new TimerTask() {
+    private List<String> userIdList = new ArrayList<String>();
+    //user列表的index
+    int processId = 0;
+
+    private TimerTask sendTimerTask = new TimerTask() {
         @Override
         public void run() {
 
-            //int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
-
-            if (successAppStartCount + failAppStartCount >= sendCount || alreadySendCount >= sendCount) {
+            if (successAppStartCount + failAppStartCount >= sendCount || alreadySendCount >= sendCount
+                || processId >= userIdList.size()) {
                 timer.cancel();
                 return;
             }
             alreadySendCount++;
-            final String userId = String.valueOf(Math.abs(random.nextLong()));
-            Message msg = handler.obtainMessage(MSG_SEND);
+            //final String userId = String.valueOf(Math.abs(random.nextLong()));
+            final String userId = userIdList.get(processId);
+            processId++;
+            PreferencesUtils.putInt(UAService.this, PreferencesConstants.SEND_USER_INDEX, processId);
+            Message msg = handler.obtainMessage(MSG_SEND_LOOP);
             //msg.arg1 = delay;
             msg.obj = userId;
             handler.sendMessage(msg);
@@ -87,14 +104,12 @@ public class UAService extends Service {
         @Override
         public void onSuccess(int code, String response) {
             successAppStartCount++;
-
             Log.i(TAG, "result >> " + getSendResult());
         }
 
         @Override
         public void onFailure(int code, String response) {
             failAppStartCount++;
-
             Log.i(TAG, "result >> " + getSendResult());
         }
     };
@@ -104,9 +119,15 @@ public class UAService extends Service {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
-                case MSG_SEND:
+                case MSG_SEND_LOOP:
                     String userId = (String) msg.obj;
-                    UARequest.getInstance().sendRequset(UAService.this, userId, resultCallback);
+                    UARequest.getInstance().sendAppAndUserStartBatch(UAService.this, userId, resultCallback);
+                    break;
+                case MSG_LOAD_USER_DONE:
+                    sendRequestTask();
+                    break;
+                case MSG_FETCH_SWITCH_DONE:
+                    loadUserId();
                     break;
             }
         }
@@ -118,33 +139,23 @@ public class UAService extends Service {
         Log.i(TAG, "onCreate");
         timer = new Timer();
         loadSendParam();
-
-        //获取配置数据
-        SettingClient.getInstance().getSettings(this, new ResultCallback<SettingInfo>() {
-            @Override
-            public void onSuccess(SettingInfo result) {
-                //sendRequest();
-                sendRequestTask();
-            }
-
-            @Override
-            public void onFailure(SettingInfo result) {
-                showToast("获取开关失败");
-                stopSelf();
-            }
-        });
+        loadSendSwitch();
     }
 
     @Override
     public void onDestroy() {
         Log.i(TAG, "onDestroy");
+        UARequest.getInstance().cancelRequst(this);
         isRunning = false;
+        handler.removeCallbacksAndMessages(null);
+        if(timer != null){
+            timer.cancel();
+        }
         super.onDestroy();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
         return START_NOT_STICKY;
     }
 
@@ -161,19 +172,54 @@ public class UAService extends Service {
         lastSuccessAppStartCount = 0;
         lastFailAppStartCount = 0;
         alreadySendCount = 0;
+        processId = 0;
     }
 
+    /**
+     * 异常情况处理
+     * @param errorMsg
+     * @param successCount
+     * @param failCount
+     */
+    private void notifySendError(String errorMsg, int successCount, int failCount) {
+        EventBus.getDefault().post(new EventSendStatus(EventSendStatus.SendStatus.SEND_CANCLE, successCount,
+            failCount));
+        showToast(errorMsg);
+        stopSelf();
+    }
+
+    //获取开关上报开关
+    private void loadSendSwitch(){
+        //获取配置数据
+        SettingClient.getInstance().getSettings(this, new ResultCallback<SettingInfo>() {
+            @Override
+            public void onSuccess(SettingInfo result) {
+                if (!result.isUaSwitch() || !result.isOtherUaSwitch()) {
+                    notifySendError("开关：" + result.isUaSwitch() + ", 开关other:" + result.isOtherUaSwitch(), 0, 0);
+                    return;
+                }
+                handler.sendEmptyMessage(MSG_FETCH_SWITCH_DONE);
+            }
+
+            @Override
+            public void onFailure(SettingInfo result) {
+                notifySendError("获取开关失败", 0, 0);
+            }
+        });
+    }
 
     private void loadSendParam() {
-        sendCount = PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0);
-        int sendTime = PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0) * 60;
-        try {
-            sendTimeInterval = UAStatisticClient.calculateFrequency(sendCount, sendTime);
-        } catch (Exception e) {
-            sendTimeInterval = DEFAULT_TIME_INTEVAL;
-        }
+//        sendCount = PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0);
+//        int sendTime = PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0) * 60;
+//        try {
+//            sendTimeInterval = UAStatisticClient.calculateFrequency(sendCount, sendTime);
+//        } catch (Exception e) {
+//            sendTimeInterval = DEFAULT_TIME_INTEVAL;
+//        }
 
-        Log.i(TAG, "loadSendParam count=" + sendCount + ", time=" + sendTime + ", frequence=" + sendTimeInterval);
+        sendTimeInterval = PreferencesUtils.getInt(this, PreferencesConstants.SEND_INTEVAL, 0);
+
+        Log.i(TAG, "loadSendParam frequence=" + sendTimeInterval);
 
         //避免太频繁
         if (sendTimeInterval < 0.1f) {
@@ -181,17 +227,39 @@ public class UAService extends Service {
         }
     }
 
-    private void sendRequestTask() {
-        boolean uaSwitch = SettingClient.getInstance().getSettingInfo().isUaSwitch();
-        boolean otherUaSwitch = SettingClient.getInstance().getSettingInfo().isOtherUaSwitch();
-        //int sendCount = SettingClient.getInstance().getSettingInfo().getSendCount();
+    private void loadUserId() {
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                String users = FileUtil.readFile(FileStorageConst.USER_FILE_PATH);
+                if (!TextUtils.isEmpty(users)) {
+                    String[] userArr = users.split("\r\n");
+                    Log.i(TAG,"User list :" + users);
+                    userIdList = Arrays.asList(userArr);
+                }
 
+                handler.sendEmptyMessage(MSG_LOAD_USER_DONE);
+            }
+        }.start();
+    }
+
+    private void sendRequestTask() {
+
+        if (userIdList == null || userIdList.isEmpty()) {
+            notifySendError("获取userid错误", 0, 0);
+            return;
+        }
         reset();
 
-        if (!uaSwitch || !otherUaSwitch || sendCount < 1) {
-            showToast("开关：" + uaSwitch + ", 条数：" + sendCount
-                + ", 开关other:" + otherUaSwitch);
-            stopSelf();
+        processId = PreferencesUtils.getInt(UAService.this, PreferencesConstants.SEND_USER_INDEX, processId);
+
+        Log.i(TAG, "上次发送到第" + processId + "条");
+        sendCount = userIdList.size() - processId;
+
+
+        if (sendCount < 1) {
+            notifySendError("发送条数小于1，条数：" + sendCount, 0, 0);
             return;
         }
 
@@ -202,7 +270,7 @@ public class UAService extends Service {
         //执行次数
         final int len = sendCount;
 
-        timer.schedule(timerTask, (long) (sendTimeInterval * 1000), (long) (sendTimeInterval * 1000));
+        timer.schedule(sendTimerTask, (long) (sendTimeInterval * 1000), (long) (sendTimeInterval * 1000));
 
         waitTime = 0;
         new Thread("checkfinish") {
@@ -210,7 +278,7 @@ public class UAService extends Service {
             public void run() {
                 super.run();
                 try {
-                    while (true) {
+                    while (true && isRunning) {
                         int step = 5;
                         waitTime += step;
                         sleep(step * 1000);
@@ -257,10 +325,7 @@ public class UAService extends Service {
 
         Log.i(TAG, "UA-end, 成功条数：" + succCount + ", failCount=" + failCount);
 
-        Intent intent = new Intent(SendActivity.ACTION_DONE);
-        intent.putExtra(SendActivity.EXTRA_SUCCES_COUNT, succCount);
-        intent.putExtra(SendActivity.EXTRA_FIAL_COUNT, failCount);
-        sendBroadcast(intent);
+        EventBus.getDefault().post(new EventSendStatus(EventSendStatus.SendStatus.SEND_DONE, succCount, failCount));
 
         AlertDialog.Builder builder = new AlertDialog.Builder(UAService.this);
         builder.setTitle("完成");
@@ -280,10 +345,7 @@ public class UAService extends Service {
         lastFailAppStartCount = failCount;
         UAStatisticClient.saveCurrentSendCount(this, deltaSucc, deltaFail);
 
-        Intent intent = new Intent(SendActivity.ACTION_PROGRESS);
-        intent.putExtra(SendActivity.EXTRA_SUCCES_COUNT, succCount);
-        intent.putExtra(SendActivity.EXTRA_FIAL_COUNT, failCount);
-        sendBroadcast(intent);
+        EventBus.getDefault().post(new EventSendStatus(EventSendStatus.SendStatus.SEND_PROGRESS, succCount, failCount));
     }
 
     private void showToast(String msg) {

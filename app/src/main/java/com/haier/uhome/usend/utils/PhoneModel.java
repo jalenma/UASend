@@ -59,7 +59,7 @@ public class PhoneModel {
         String data = null;
         try {
             data = loadPreparedPhoneModel();
-            Log.i("jalen", data);
+//            Log.i("jalen", data);
             if(!TextUtils.isEmpty(data)){
                 phoneModelArr = data.split("\r\n");
             }

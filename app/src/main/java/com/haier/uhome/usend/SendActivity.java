@@ -14,8 +14,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.haier.uhome.usend.events.EventSendStatus;
+import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -39,8 +44,14 @@ public class SendActivity extends Activity {
     EditText etRunCount;
     @BindView(R.id.et_run_time)
     EditText etRunTime;
+    @BindView(R.id.et_send_inteval)
+    EditText etSendInteval;
     @BindView(R.id.btn_send)
     Button btnSend;
+    @BindView(R.id.btn_pause)
+    Button btnPause;
+    @BindView(R.id.btn_continue)
+    Button btnContinue;
 
     int runTime;
     int runCount;
@@ -52,11 +63,6 @@ public class SendActivity extends Activity {
         setContentView(R.layout.activity_send);
         ButterKnife.bind(this);
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_DONE);
-        filter.addAction(ACTION_PROGRESS);
-        registerReceiver(receiver, filter);
-
         if(UAService.isRunning()){
             setSendButtnEnable(false);
         }
@@ -65,17 +71,41 @@ public class SendActivity extends Activity {
 
         etRunCount.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0)));
         etRunTime.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0)));
+        etSendInteval.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.SEND_INTEVAL, 0)));
+
+        EventBus.getDefault().register(this);
     }
 
     @Override
     protected void onDestroy() {
-        unregisterReceiver(receiver);
+        EventBus.getDefault().unregister(this);
         super.onDestroy();
     }
 
-    @OnClick(R.id.btn_send)
-    void startSend(){
-        String timeStr = etRunTime.getText().toString().trim();
+    private void startSend(){
+        int inteval = 0;
+        String sendInteval = etSendInteval.getText().toString().trim();
+        if(!TextUtils.isEmpty(sendInteval)){
+            inteval = Integer.valueOf(sendInteval);
+        }
+
+        if(inteval <= 0){
+            showToast("间隔必须大于0");
+            return;
+        }
+
+        PreferencesUtils.putInt(this, PreferencesConstants.SEND_INTEVAL, inteval);
+        //PreferencesUtils.putInt(this, PreferencesConstants.SEND_USER_INDEX, 0);
+        try {
+            String msg = "发送时间间隔：" + inteval + "秒，是否继续？";
+            showConfirmDialog(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            showToast(e.getMessage());
+            return;
+        }
+
+        /*String timeStr = etRunTime.getText().toString().trim();
         if(!TextUtils.isEmpty(timeStr)){
             runTime = Integer.valueOf(timeStr);
         }
@@ -97,17 +127,38 @@ public class SendActivity extends Activity {
             e.printStackTrace();
             showToast(e.getMessage());
             return;
-        }
+        }*/
+    }
+
+    @OnClick(R.id.btn_send)
+    void restartSend(){
+        PreferencesUtils.putInt(this, PreferencesConstants.SEND_USER_INDEX, 0);
+        startSend();
+    }
+
+    @OnClick(R.id.btn_pause)
+    void pauseSend(){
+        stopUaService();
+    }
+
+    @OnClick(R.id.btn_continue)
+    void continueSend(){
+        startSend();
     }
 
     private void startUaService() {
-
         PreferencesUtils.putInt(this, PreferencesConstants.RUN_TIME, runTime);
         PreferencesUtils.putInt(this, PreferencesConstants.RUN_COUNT, runCount);
         Intent it = new Intent();
         it.setClass(this, UAService.class);
         startService(it);
         setSendButtnEnable(false);
+    }
+
+    private void stopUaService() {
+        Intent it = new Intent();
+        it.setClass(this, UAService.class);
+        stopService(it);
     }
 
     private void setSendButtnEnable(boolean enable) {
@@ -129,27 +180,27 @@ public class SendActivity extends Activity {
         Toast.makeText(this,"次数和时间必须大于0",Toast.LENGTH_LONG).show();
     }
 
-    BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent != null) {
-                if (ACTION_DONE.equals(intent.getAction())) {
-                    setSendButtnEnable(true);
-                    int succCount = intent.getIntExtra(EXTRA_SUCCES_COUNT, 0);
-                    int failCount = intent.getIntExtra(EXTRA_FIAL_COUNT, 0);
-                    refreshCurrentSendCount(succCount, failCount);
-                    refreshTotalSendText();
-                } else if (ACTION_PROGRESS.equals(intent.getAction())) {
-                    int succCount = intent.getIntExtra(EXTRA_SUCCES_COUNT, 0);
-                    int failCount = intent.getIntExtra(EXTRA_FIAL_COUNT, 0);
-                    refreshCurrentSendCount(succCount, failCount);
-                    refreshTotalSendText();
-                } else if(ACTION_CANCLE.equals(intent.getAction())){
-                    setSendButtnEnable(true);
-                }
-            }
+
+    @Subscribe
+    public void onEvent(EventSendStatus sendStatus){
+        if(sendStatus == null){
+            return;
         }
-    };
+        int succCount = sendStatus.getSendCount().getSucessCount();
+        int failCount = sendStatus.getSendCount().getFailCount();
+        //Log.i("jalen", "onEvent, type="+sendStatus.getSendStatus() + ", f=" + failCount +", s="+succCount);
+        switch (sendStatus.getSendStatus()){
+            case SEND_DONE:
+                setSendButtnEnable(true);
+            case SEND_PROGRESS:
+                refreshCurrentSendCount(succCount, failCount);
+                refreshTotalSendText();
+                break;
+            case SEND_CANCLE:
+                setSendButtnEnable(true);
+                break;
+        }
+    }
 
     private AlertDialog dialog;
 

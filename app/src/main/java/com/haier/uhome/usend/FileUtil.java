@@ -19,14 +19,16 @@ import java.io.OutputStream;
  */
 public class FileUtil {
 
-    public static final String FILE_PATH = "/haier/users.txt";
-
-    private static File getUserFile(String path) {
-        return new File(Environment.getExternalStorageDirectory(), path);
+    public static File getPreferFileBaseDir(){
+        return Environment.getExternalStorageDirectory();
     }
 
-    public static String getAllUserId() {
-        File file = getUserFile(FILE_PATH);
+    private static File openFile(String path) {
+        return new File(getPreferFileBaseDir(), path);
+    }
+
+    public static String readFile(String path) {
+        File file = openFile(path);
         if (!file.exists()) {
             return null;
         }
@@ -39,8 +41,8 @@ public class FileUtil {
         }
     }
 
-    public static byte[] readFile (File file) throws IOException{
-        if(null == file || !file.exists()){
+    public static byte[] readFile(File file) throws IOException {
+        if (null == file || !file.exists()) {
             return null;
         }
 
@@ -48,8 +50,8 @@ public class FileUtil {
         return readInputStream(fileInputStream);
     }
 
-    public static byte[] readInputStream(InputStream inputStream) throws IOException{
-        if(null == inputStream){
+    public static byte[] readInputStream(InputStream inputStream) throws IOException {
+        if (null == inputStream) {
             return null;
         }
 
