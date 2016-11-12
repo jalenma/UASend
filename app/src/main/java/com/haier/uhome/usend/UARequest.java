@@ -17,6 +17,8 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -72,8 +74,10 @@ public class UARequest {
     public void sendAppAndUserStartBatch(final Context context, final String userId, final RequestResult callback){
         //请求头里的session, app初始化时生成，后面所有事件事件必须必比session大
         final long session = generateSession();
+
+        final String phoneModel = PhoneModel.getInstance().getRandomPhoneModel();
         //请求头里的cid
-        final String cid = generateCid(userId);
+        final String cid = generateCidByUid(userId, phoneModel);
 
         final long appStartEventTime = session + random.nextInt(10100) % 10100;
         final long userStartEventTime = appStartEventTime + random.nextInt(10100) % 10100;
@@ -97,7 +101,7 @@ public class UARequest {
         RequestAppStartResult appStartResult = new RequestAppStartResult() {
             @Override
             public void onSuccess(int code, String response) {
-                sendUserStartRequest(context, session, userStartEventTime, cid, userId, userStartResult);
+                sendUserStartRequest(context, session, userStartEventTime, cid, userId, phoneModel, userStartResult);
             }
 
             @Override
@@ -106,15 +110,15 @@ public class UARequest {
         };
 
         //启动请求
-        sendAppStartRequest(context, session, appStartEventTime, cid, userId, appStartResult);
+        sendAppStartRequest(context, session, appStartEventTime, cid, userId, phoneModel, appStartResult);
     }
 
     // app启动请求
     public void sendAppStartRequest(Context context, long session, long appStartEventTime, final String cid,  final
-        String userId, final RequestAppStartResult callback) {
+        String userId, String phoneModel, final RequestAppStartResult callback) {
         //启动请求
         String requestBody = generateStartJson(getFormateTime(appStartEventTime));
-        Header[] headers = getHeaders("", cid, String.valueOf(session));
+        Header[] headers = getHeaders("", cid, phoneModel, String.valueOf(session));
         try {
             HttpRequestManager.post(context, URL, headers, new StringEntity(requestBody), new HttpRequestManager
                 .RequestTextCallback() {
@@ -141,9 +145,9 @@ public class UARequest {
 
     //用户启动请求，登录完成后事件
     public void sendUserStartRequest(Context context, long session, long userStartEventTime, final String cid,
-                                     final String userId, final RequestUserStartResult callback) {
+                                     final String userId, String phoneModel, final RequestUserStartResult callback) {
         String userStartTime = getFormateTime(userStartEventTime);
-        Header[] userHeaders = getHeaders(userId, cid, String.valueOf(session));
+        Header[] userHeaders = getHeaders(userId, cid, phoneModel, String.valueOf(session));
         String userStartBody = generateUserStartJson(userId, userStartTime);
 
         //user start 事件
@@ -185,7 +189,7 @@ public class UARequest {
 
         //启动请求
         String requestBody = generateStartJson(eventTime);
-        Header[] headers = getHeaders("", cid, String.valueOf(session));
+        Header[] headers = getHeaders("", cid, "", String.valueOf(session));
         try {
             HttpRequestManager.post(context, URL, headers, new StringEntity(requestBody), new HttpRequestManager
                 .RequestTextCallback() {
@@ -251,7 +255,7 @@ public class UARequest {
      * @return
      */
 
-    private static Header[] getHeaders(String userId, String cid, String session) {
+    private static Header[] getHeaders(String userId, String cid, String phoneModel, String session) {
 
         BasicHeader appIdHeader = new BasicHeader("aid", "MB-UZHSH-0000");
         BasicHeader akHeader = new BasicHeader("ak", "f50c76fbc8271d361e1f6b5973f54585");
@@ -260,7 +264,7 @@ public class UARequest {
         BasicHeader uidHeader = new BasicHeader("uid", userId);
         BasicHeader avHeader = new BasicHeader("av", APP_VERSIOIN);
         BasicHeader chHeader = new BasicHeader("ch", APP_CHANNLE);
-        BasicHeader agHeader = new BasicHeader("ag", PhoneModel.getInstance().getRandomPhoneModel());
+        BasicHeader agHeader = new BasicHeader("ag", phoneModel);
 
         BasicHeader conTentType = new BasicHeader("Content-Type", "application/json;charset=UTF-8");
         BasicHeader accCharset = new BasicHeader("Accept-Charset", "UTF-8");
@@ -340,6 +344,58 @@ public class UARequest {
         String source = uid;
         if (TextUtils.isEmpty(uid)) {
             source = String.valueOf(System.currentTimeMillis());
+        } else {
+            source = uid + String.valueOf(System.currentTimeMillis());
+        }
+        String cid = string2MD5(source);
+        return cid.toUpperCase();
+    }
+
+    //数字转化成0-F字符串，类似mac字符串
+    private Map<String, String> macMap = new HashMap(){
+        {
+            put("0", "1C");
+            put("1", "D0");
+            put("2", "EA");
+            put("3", "2D");
+            put("4", "3E");
+            put("5", "9F");
+            put("6", "48");
+            put("7", "BA");
+            put("8", "E0");
+            put("9", "5E");
+        }
+    };
+    //数字转化成另外一组数字
+    private Map<String, String> numMap = new HashMap(){
+        {
+            put("0", "5");
+            put("1", "9");
+            put("2", "1");
+            put("3", "7");
+            put("4", "4");
+            put("5", "8");
+            put("6", "0");
+            put("7", "2");
+            put("8", "6");
+            put("9", "3");
+        }
+    };
+
+    private String generateCidByUid(String uid, String phoneModel){
+
+        String source = uid;
+        if (!TextUtils.isEmpty(uid)) {
+            StringBuffer outMacString = new StringBuffer();
+            StringBuffer outNumString = new StringBuffer();
+            String key = "0";
+            for(int i = 0; i< uid.length(); i++){
+                key = String.valueOf(uid.charAt(i));
+                outMacString.append(macMap.get(key));
+                outNumString.append(numMap.get(key));
+            }
+            String outPhomeModel = TextUtils.isEmpty(phoneModel) ? "00" : String.valueOf(phoneModel.length());
+            source = outMacString.toString() + outNumString.toString() + outPhomeModel;
         } else {
             source = uid + String.valueOf(System.currentTimeMillis());
         }

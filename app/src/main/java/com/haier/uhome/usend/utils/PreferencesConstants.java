@@ -12,8 +12,8 @@ public class PreferencesConstants {
     public static final String RUN_COUNT = "run_count";
     //发送间隔
     public static final String SEND_INTEVAL = "send_inteval";
-    //当前发送了第几个user id
-    public static final String SEND_USER_INDEX = "send_user_id";
+    //当前发送了第几个统计数据 id
+    public static final String SEND_STATISTIC_INDEX = "send_statistic_id";
     //发送成功总条数
     public static final String SEND_SUCCESS_COUNT = "send_success_count";
     //发送失败总条数

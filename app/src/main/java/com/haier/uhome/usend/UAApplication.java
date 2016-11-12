@@ -17,12 +17,6 @@ public class UAApplication extends Application {
         super.onCreate();
         CrashHandler.getInstance().init(this);
         PhoneModel.init(this);
-        PhoneModel.getInstance().getRandomPhoneModel();
-        PhoneModel.getInstance().getRandomPhoneModel();
-        PhoneModel.getInstance().getRandomPhoneModel();
-        PhoneModel.getInstance().getRandomPhoneModel();
-        PhoneModel.getInstance().getRandomPhoneModel();
-        PhoneModel.getInstance().getRandomPhoneModel();
-        PhoneModel.getInstance().getRandomPhoneModel();
+        UAStatisticClient.getInstance().init(this);
     }
 }

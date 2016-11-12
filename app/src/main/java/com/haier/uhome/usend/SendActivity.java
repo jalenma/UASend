@@ -2,11 +2,8 @@ package com.haier.uhome.usend;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -15,7 +12,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.haier.uhome.usend.events.EventSendStatus;
-import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
 
@@ -30,14 +26,10 @@ public class SendActivity extends Activity {
 
     private static final String TAG = "SendActivity";
 
-    public static final String ACTION_CANCLE = "com.haier.usend.CANCLE_DONE";
-    public static final String ACTION_DONE = "com.haier.usend.SEND_DONE";
-    public static final String ACTION_PROGRESS = "com.haier.usend.SEND_PROGERESS";
-    public static final String EXTRA_SUCCES_COUNT = "sucess_count";
-    public static final String EXTRA_FIAL_COUNT = "fial_count";
-
     @BindView(R.id.tv_current_result)
     TextView tvResult;
+    @BindView(R.id.tv_today_total)
+    TextView tvTodayTotal;
     @BindView(R.id.tv_send_total)
     TextView tvSendTotal;
     @BindView(R.id.et_run_count)
@@ -53,6 +45,8 @@ public class SendActivity extends Activity {
     @BindView(R.id.btn_continue)
     Button btnContinue;
 
+    boolean isRestart = true;
+
     int runTime;
     int runCount;
 
@@ -66,7 +60,8 @@ public class SendActivity extends Activity {
         if(UAService.isRunning()){
             setSendButtnEnable(false);
         }
-        refreshTotalSendText();
+        refreshTodaySendText();
+        refershTotalSendText();
         refreshCurrentSendCount(0, 0);
 
         etRunCount.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0)));
@@ -84,6 +79,7 @@ public class SendActivity extends Activity {
 
     private void startSend(){
         int inteval = 0;
+
         String sendInteval = etSendInteval.getText().toString().trim();
         if(!TextUtils.isEmpty(sendInteval)){
             inteval = Integer.valueOf(sendInteval);
@@ -95,7 +91,7 @@ public class SendActivity extends Activity {
         }
 
         PreferencesUtils.putInt(this, PreferencesConstants.SEND_INTEVAL, inteval);
-        //PreferencesUtils.putInt(this, PreferencesConstants.SEND_USER_INDEX, 0);
+        //PreferencesUtils.putInt(this, PreferencesConstants.SEND_STATISTIC_INDEX, 0);
         try {
             String msg = "发送时间间隔：" + inteval + "秒，是否继续？";
             showConfirmDialog(msg);
@@ -132,7 +128,8 @@ public class SendActivity extends Activity {
 
     @OnClick(R.id.btn_send)
     void restartSend(){
-        PreferencesUtils.putInt(this, PreferencesConstants.SEND_USER_INDEX, 0);
+        UAStatisticClient.getInstance().resetStatisticData();
+        isRestart = true;
         startSend();
     }
 
@@ -143,10 +140,14 @@ public class SendActivity extends Activity {
 
     @OnClick(R.id.btn_continue)
     void continueSend(){
+        isRestart = false;
         startSend();
     }
 
     private void startUaService() {
+        if(isRestart){
+            UAStatisticClient.getInstance().resetStatisticData();
+        }
         PreferencesUtils.putInt(this, PreferencesConstants.RUN_TIME, runTime);
         PreferencesUtils.putInt(this, PreferencesConstants.RUN_COUNT, runCount);
         Intent it = new Intent();
@@ -165,15 +166,22 @@ public class SendActivity extends Activity {
         btnSend.setEnabled(enable);
     }
 
-    private void refreshTotalSendText(){
+    private void refreshTodaySendText(){
         String total = String.format("今天已经发送成功：%d; 失败：%d",
-            UAStatisticClient.getTodaySuccCount(this),
-            UAStatisticClient.getTodayFailCount(this));
-        tvSendTotal.setText(total);
+            UAStatisticClient.getInstance().getTodaySuccCount(this),
+            UAStatisticClient.getInstance().getTodayFailCount(this));
+        tvTodayTotal.setText(total);
     }
-
     private void refreshCurrentSendCount(int succCount, int failCount){
         tvResult.setText("本次发送成功条数：" + succCount + "; 失败条数：" + failCount);
+    }
+
+    private void refershTotalSendText(){
+
+        String total = String.format("本文件已经发送成功：%d; 失败：%d",
+            UAStatisticClient.getInstance().getSendSuccCount(),
+            UAStatisticClient.getInstance().getSendFailCount());
+        tvSendTotal.setText(total);
     }
 
     private void showToast(String msg){
@@ -192,9 +200,11 @@ public class SendActivity extends Activity {
         switch (sendStatus.getSendStatus()){
             case SEND_DONE:
                 setSendButtnEnable(true);
+                break;
             case SEND_PROGRESS:
                 refreshCurrentSendCount(succCount, failCount);
-                refreshTotalSendText();
+                refreshTodaySendText();
+                refershTotalSendText();
                 break;
             case SEND_CANCLE:
                 setSendButtnEnable(true);

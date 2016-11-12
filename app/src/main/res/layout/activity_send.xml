@@ -78,7 +78,7 @@
         android:id="@+id/btn_send"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="开始"/>
+        android:text="重新开始"/>
     <Button
         android:id="@+id/btn_pause"
         android:layout_width="match_parent"
@@ -88,7 +88,7 @@
         android:id="@+id/btn_continue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="继续"/>
+        android:text="继续上次"/>
 
     <TextView
         android:id="@+id/tv_current_result"
@@ -96,7 +96,14 @@
         android:layout_height="wrap_content"/>
 
     <TextView
+        android:id="@+id/tv_today_total"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <TextView
         android:id="@+id/tv_send_total"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
+
+
 </LinearLayout>
