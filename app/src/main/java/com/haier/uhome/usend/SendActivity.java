@@ -136,6 +136,7 @@ public class SendActivity extends Activity {
     @OnClick(R.id.btn_pause)
     void pauseSend(){
         stopUaService();
+        setSendButtnEnable(true);
     }
 
     @OnClick(R.id.btn_continue)
@@ -167,18 +168,18 @@ public class SendActivity extends Activity {
     }
 
     private void refreshTodaySendText(){
-        String total = String.format("今天已经发送成功：%d; 失败：%d",
+        String total = String.format("今天已经发送 成功：%d; 失败：%d",
             UAStatisticClient.getInstance().getTodaySuccCount(this),
             UAStatisticClient.getInstance().getTodayFailCount(this));
         tvTodayTotal.setText(total);
     }
     private void refreshCurrentSendCount(int succCount, int failCount){
-        tvResult.setText("本次发送成功条数：" + succCount + "; 失败条数：" + failCount);
+        tvResult.setText("本次已经发送 成功：" + succCount + "; 失败：" + failCount);
     }
 
     private void refershTotalSendText(){
 
-        String total = String.format("本文件已经发送成功：%d; 失败：%d",
+        String total = String.format("本文件已经发送 成功：%d; 失败：%d",
             UAStatisticClient.getInstance().getSendSuccCount(),
             UAStatisticClient.getInstance().getSendFailCount());
         tvSendTotal.setText(total);

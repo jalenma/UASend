@@ -24,6 +24,7 @@ public class HttpRequestManager {
 
     static {
         client.setTimeout(DEFUALT_TIMEOUT);
+        client.setConnectTimeout(DEFUALT_TIMEOUT);
     }
 
     public HttpRequestManager() {
