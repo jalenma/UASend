@@ -85,15 +85,27 @@ public class UARequest {
         final RequestUserStartResult userStartResult = new RequestUserStartResult() {
             @Override
             public void onSuccess(int code, String response) {
-                if(null != callback){
-                    callback.onSuccess(code, response);
-                }
+                sendAppUseRequest(context, session, "com.haier.uhome.uplus.ui.activity.TabDeviceListActivity", cid, userId, phoneModel, new RequestAppUseResult() {
+                    @Override
+                    public void onSuccess(int code, String response) {
+                        if(null != callback){
+                            callback.onSuccess(code, response);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(int code, String response) {
+                        if(null != callback){
+                            callback.onFailure(code, response);
+                        }
+                    }
+                });
             }
 
             @Override
             public void onFailure(int code, String response) {
                 if(null != callback){
-                    callback.onSuccess(code, response);
+                    callback.onFailure(code, response);
                 }
             }
         };
@@ -106,6 +118,9 @@ public class UARequest {
 
             @Override
             public void onFailure(int code, String response) {
+                if(null != callback){
+                    callback.onFailure(code, response);
+                }
             }
         };
 
@@ -176,29 +191,34 @@ public class UARequest {
         }
     }
 
-    @Deprecated
-    public void sendRequset(Context context, final String userId, final RequestResult callback) {
-        //请求头里的session
-        long session = generateSession();
-        long tmp = session;
-        //将session里的几位设置成0，保证比 请求body里的time小
-        session = session - random.nextInt(10100) % 10100;
-        //请求body里的time
-        String eventTime = getFormateTime(tmp);
-        final String cid = generateCid(userId);
+    /**
+     * 页面使用统计
+     * @param context
+     * @param session
+     * @param cid
+     * @param userId
+     * @param phoneModel
+     * @param callback
+     */
+    public void sendAppUseRequest(Context context, long session, String pageName, final String cid,
+                                  final String userId, String phoneModel, final RequestAppUseResult callback) {
+        long startTimeInt = session + 10100 + random.nextInt(10100) % 10100;
+        long endTimeInt = startTimeInt + 10100 + random.nextInt(50100) % 50100;
+        String pageStartTime = getFormateTime(startTimeInt);
+        String pageEngTime = getFormateTime(endTimeInt);
+        Header[] userHeaders = getHeaders(userId, cid, phoneModel, String.valueOf(session));
+        String userStartBody = generateAppUserJson(userId, pageStartTime, pageEngTime, pageName);
 
-        //启动请求
-        String requestBody = generateStartJson(eventTime);
-        Header[] headers = getHeaders("", cid, "", String.valueOf(session));
         try {
-            HttpRequestManager.post(context, URL, headers, new StringEntity(requestBody), new HttpRequestManager
+            HttpRequestManager.post(context, URL, userHeaders, new StringEntity(userStartBody), new HttpRequestManager
                 .RequestTextCallback() {
+
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, String response) {
                     if(null != callback){
                         callback.onSuccess(statusCode, response);
                     }
-                    Log.i(TAG, "UA-MI send app start success pud = " + userId + ", pcd=" + cid);
+                    Log.i(TAG, "UA-MI send app use success userId = " + userId + ", pcd=" + cid);
                 }
 
                 @Override
@@ -206,38 +226,12 @@ public class UARequest {
                     if(null != callback){
                         callback.onFailure(statusCode, response);
                     }
-                    Log.i(TAG, "UA-MI send app start fail pud = " + userId + ", pcd=" + cid);
+                    Log.i(TAG, "UA-MI send app use fail userId = " + userId + ", pcd=" + cid);
                 }
             });
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-
-        /*tmp += random.nextInt(10000);
-        String userStartTime = getFormateTime(tmp);
-        Header[] userHeaders = getHeaders(userId, cid, String.valueOf(session));
-        String userStartBody = generateUserStartJson(userId, userStartTime);
-
-        //user start 事件
-        try {
-            HttpRequestManager.post(context, URL, userHeaders, new StringEntity(userStartBody), new HttpRequestManager
-                .RequestTextCallback() {
-
-                @Override
-                public void onSuccess(int statusCode, Header[] headers, String response) {
-                    increateSuccUserStartCount();
-                    Log.i(TAG, "send user start success userId = " + userId);
-                }
-
-                @Override
-                public void onFailure(int statusCode, Header[] headers, String response) {
-                    increateAppStartCount();
-                    Log.i(TAG, "send user start fail userId = " + userId);
-                }
-            });
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }*/
     }
 
     /**
@@ -254,9 +248,7 @@ public class UARequest {
      *
      * @return
      */
-
     private static Header[] getHeaders(String userId, String cid, String phoneModel, String session) {
-
         BasicHeader appIdHeader = new BasicHeader("aid", "MB-UZHSH-0000");
         BasicHeader akHeader = new BasicHeader("ak", "f50c76fbc8271d361e1f6b5973f54585");
         BasicHeader cidHeader = new BasicHeader("cid", cid);
@@ -292,7 +284,7 @@ public class UARequest {
         try {
             jsonObject.put("eid", "t_user_start");
 
-            jsonObject.put("tm", "2016-06-12 12:33:32.192");
+            jsonObject.put("tm", eventTime);
             jsonObject.put("cmd", 1004);
 
             JSONObject pa = new JSONObject();
@@ -301,6 +293,21 @@ public class UARequest {
             jsonObject.put("pa", pa);
             jsonObject.put("net", "WIFI");
             jsonObject.put("acc", 1);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jsonObject.toString();
+    }
+
+    private static String generateAppUserJson(String userId, String startTime, String endTime, String pageName){
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("cmd", 1003);
+            jsonObject.put("st", startTime);
+            jsonObject.put("et", endTime);
+            jsonObject.put("eid", "t_app_use");
+            jsonObject.put("net", "WIFI");
+            jsonObject.put("lb", pageName);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -448,6 +455,11 @@ public class UARequest {
     }
 
     public interface RequestUserStartResult{
+        void onSuccess(int code, String response);
+        void onFailure(int code, String response);
+    }
+
+    public interface RequestAppUseResult{
         void onSuccess(int code, String response);
         void onFailure(int code, String response);
     }

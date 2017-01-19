@@ -66,7 +66,7 @@ public class SendActivity extends Activity {
 
         etRunCount.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0)));
         etRunTime.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0)));
-        etSendInteval.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.SEND_INTEVAL, 0)));
+        etSendInteval.setText(String.valueOf(PreferencesUtils.getInt(this, PreferencesConstants.SEND_INTEVAL, 1)));
 
         EventBus.getDefault().register(this);
     }
