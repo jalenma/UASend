@@ -5,19 +5,14 @@ package com.haier.uhome.usend.data;
  * @Data: 2016/11/5
  * @Description: 上报数据
  */
-public class StatisticBean {
+public class UserData {
     String userId;
-    String cid;
 
-    public StatisticBean(String uid){
+    public UserData(String uid){
         userId = uid;
     }
 
     public String getUserId() {
         return userId;
-    }
-
-    public String getCid() {
-        return cid;
     }
 }

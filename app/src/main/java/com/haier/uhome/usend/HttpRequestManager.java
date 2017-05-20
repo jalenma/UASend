@@ -12,7 +12,10 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HttpRequestManager {
 
@@ -25,6 +28,7 @@ public class HttpRequestManager {
     static {
         client.setTimeout(DEFUALT_TIMEOUT);
         client.setConnectTimeout(DEFUALT_TIMEOUT);
+        client.setProxy("61.53.137.50", 8080);
     }
 
     public HttpRequestManager() {
@@ -162,11 +166,55 @@ public class HttpRequestManager {
 
     public interface RequestTextCallback {
         void onFailure(int statusCode, Header[] headers, String response);
+
         void onSuccess(int statusCode, Header[] headers, String response);
     }
 
     public interface RequestBinaryCallback {
 
         void onResult(int statusCode, Header[] headers, byte[] response);
+    }
+
+
+    /*-------------------------------------------*/
+
+    public static void batchPost(){
+
+    }
+
+    public static class BatchData {
+        ArrayList<Data> dataList;
+
+        public BatchData(){
+            dataList = new ArrayList<>();
+        }
+
+        public void add(String url, Map<String, String> headers, String body) {
+            Data data = new Data();
+            data.url = url;
+            data.body = body;
+            data.headers = new HashMap<>();
+            if (headers != null && !headers.isEmpty()) {
+                data.headers.putAll(headers);
+            }
+        }
+
+        public void clear(){
+            dataList.clear();
+        }
+
+        class Data {
+            String url;
+            Map<String, String> headers;
+            String body;
+        }
+    }
+
+    public interface RequestBatchDataCallback {
+        void onFailure(int statusCode, Header[] headers, String response);
+
+        void onSuccess(int statusCode, Header[] headers, String response);
+
+        void onProcess(int statusCode, Header[] headers, String response);
     }
 }

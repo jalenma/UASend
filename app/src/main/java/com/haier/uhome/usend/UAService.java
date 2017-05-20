@@ -9,7 +9,8 @@ import android.os.Message;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import com.haier.uhome.usend.data.StatisticBean;
+import com.haier.uhome.usend.data.SendData;
+import com.haier.uhome.usend.data.UserData;
 import com.haier.uhome.usend.events.EventSendStatus;
 import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.setting.ResultCallback;
@@ -34,13 +35,6 @@ public class UAService extends Service {
 
     private static boolean isRunning = false;
 
-    //最大等待120分钟
-    private int maxWaitTime = 2 * 60 * 60;
-
-    private int waitTime = 0;
-
-    private Random random = new Random(System.currentTimeMillis());
-
     //进入发送日志循环
     private static final int MSG_SEND_LOOP = 0X0001;
     //获取控制开关结束
@@ -53,46 +47,24 @@ public class UAService extends Service {
     private static final float DEFAULT_TIME_INTEVAL = 2f;
     //请求时间间隔
     private float sendTimeInterval = DEFAULT_TIME_INTEVAL;
-    //请求次数
-    //private int sendCount = 0;
 
     private UAStatisticClient statisticClient;
 
     private Timer timer;
 
-    //启动成功次数
-    //private int successAppStartCount = 0;
-    //启动失败次数
-    //private int failAppStartCount = 0;
-    //上次上报启动成功次数
-    //private int lastSuccessAppStartCount = 0;
-    //上次上报启动失败次数
-    //private int lastFailAppStartCount = 0;
-
-    //private int successUserStartCount = 0;
-    //private int failUserStartCount = 0;
-
-    //private int alreadySendCount = 0;
-
-    //private List<String> userIdList = new ArrayList<String>();
-    //user列表的index
-    //int processId = 0;
 
     private TimerTask sendTimerTask = new TimerTask() {
         @Override
         public void run() {
 
             if (UAStatisticClient.getInstance().isLastData()) {
-
                 timer.cancel();
                 return;
             }
-            //final String userId = String.valueOf(Math.abs(random.nextLong()));
-            StatisticBean statisticBean = statisticClient.getNextStaticBean();
-            final String userId = statisticBean.getUserId();
+            UserData userDate = statisticClient.getNextStatisticUser();
+            SendData sendData = SendDataGenerator.generate(userDate.getUserId());
             Message msg = handler.obtainMessage(MSG_SEND_LOOP);
-            //msg.arg1 = delay;
-            msg.obj = userId;
+            msg.obj = sendData;
             handler.sendMessage(msg);
         }
     };
@@ -119,8 +91,8 @@ public class UAService extends Service {
             super.handleMessage(msg);
             switch (msg.what) {
                 case MSG_SEND_LOOP:
-                    String userId = (String) msg.obj;
-                    UARequest.getInstance().sendAppAndUserStartBatch(UAService.this, userId, resultCallback);
+                    SendData sendData = (SendData) msg.obj;
+                    UARequest.getInstance().sendAppAndUserStartBatch(UAService.this, sendData, resultCallback);
                     break;
                 case MSG_LOAD_STATISTIC_DONE:
                     sendRequestTask();
@@ -165,14 +137,6 @@ public class UAService extends Service {
     }
 
     public void reset() {
-//        successAppStartCount = 0;
-//        failAppStartCount = 0;
-//        successUserStartCount = 0;
-//        failUserStartCount = 0;
-//        lastSuccessAppStartCount = 0;
-//        lastFailAppStartCount = 0;
-//        alreadySendCount = 0;
-//        processId = 0;
         statisticClient.resetCurrentStatisticData();
     }
 
@@ -210,13 +174,6 @@ public class UAService extends Service {
     }
 
     private void loadSendParam() {
-//        sendCount = PreferencesUtils.getInt(this, PreferencesConstants.RUN_COUNT, 0);
-//        int sendTime = PreferencesUtils.getInt(this, PreferencesConstants.RUN_TIME, 0) * 60;
-//        try {
-//            sendTimeInterval = UAStatisticClient.calculateFrequency(sendCount, sendTime);
-//        } catch (Exception e) {
-//            sendTimeInterval = DEFAULT_TIME_INTEVAL;
-//        }
 
         sendTimeInterval = PreferencesUtils.getInt(this, PreferencesConstants.SEND_INTEVAL, 0);
 
@@ -259,47 +216,7 @@ public class UAService extends Service {
 
         Log.i(TAG, "UA-start");
 
-        //执行次数
-        final int len = UAStatisticClient.getInstance().getSendSize();
-
         timer.schedule(sendTimerTask, (long) (sendTimeInterval * 1000), (long) (sendTimeInterval * 1000));
-
-        waitTime = 0;
-        /*new Thread("checkfinish") {
-            @Override
-            public void run() {
-                super.run();
-                try {
-                    while (true && isRunning) {
-                        int step = 5;
-                        waitTime += step;
-                        sleep(step * 1000);
-
-                        if (successAppStartCount + failAppStartCount >= len || waitTime > maxWaitTime) {
-                            timer.cancel();
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    reportFinished(successAppStartCount, failAppStartCount);
-                                }
-                            });
-                            break;
-                        } else {
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    reportProgress(successAppStartCount, failAppStartCount);
-                                }
-                            });
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }.start();*/
-
     }
 
     private String getSendResult() {
@@ -310,12 +227,6 @@ public class UAService extends Service {
     }
 
     private void reportFinished(int succCount, int failCount) {
-
-        //int deltaSucc = succCount - lastSuccessAppStartCount;
-        //int deltaFail = failCount - lastFailAppStartCount;
-        //lastSuccessAppStartCount = succCount;
-        //lastFailAppStartCount = failCount;
-        //UAStatisticClient.saveTodaySendCount(this, deltaSucc, deltaFail);
 
         Log.i(TAG, "UA-end, 成功条数：" + succCount + ", failCount=" + failCount);
 
@@ -333,12 +244,6 @@ public class UAService extends Service {
     }
 
     private void reportProgress(int succCount, int failCount) {
-        //int deltaSucc = succCount - lastSuccessAppStartCount;
-        //int deltaFail = failCount - lastFailAppStartCount;
-        //lastSuccessAppStartCount = succCount;
-        //lastFailAppStartCount = failCount;
-        //UAStatisticClient.saveTodaySendCount(this, deltaSucc, deltaFail);
-
         EventBus.getDefault().post(new EventSendStatus(EventSendStatus.SendStatus.SEND_PROGRESS, succCount, failCount));
 
         Log.i(TAG, "aa=" + statisticClient.getSendFailCount() + ", " + statisticClient.getSendSuccCount()

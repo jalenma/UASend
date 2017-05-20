@@ -6,7 +6,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.text.TextUtils;
 
-import com.haier.uhome.usend.data.StatisticBean;
+import com.haier.uhome.usend.data.UserData;
 import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
@@ -49,7 +49,7 @@ public class UAStatisticClient {
 
     private Context context;
 
-    private List<StatisticBean> statisticList;
+    private List<UserData> statisticUserList;
 
     private String todayStr;
 
@@ -61,7 +61,7 @@ public class UAStatisticClient {
             throw new RuntimeException("already init");
         }
         this.context = context;
-        statisticList = new ArrayList<>();
+        statisticUserList = new ArrayList<>();
         sendSuccCount = PreferencesUtils.getInt(context, PreferencesConstants.SEND_SUCCESS_COUNT, 0);
         sendFailCount = PreferencesUtils.getInt(context, PreferencesConstants.SEND_FAIL_COUNT, 0);
         sendIndex = PreferencesUtils.getInt(context, PreferencesConstants.SEND_STATISTIC_INDEX, 0);
@@ -95,11 +95,11 @@ public class UAStatisticClient {
                 if (!TextUtils.isEmpty(users)) {
                     String[] userArr = users.split("\r\n");
                     Log.i(TAG, "User list :" + users);
-                    synchronized (statisticList){
-                        statisticList.clear();
+                    synchronized (statisticUserList){
+                        statisticUserList.clear();
                         if (userArr != null && userArr.length > 0) {
                             for (int i = 0; i < userArr.length; i++) {
-                                statisticList.add(new StatisticBean(userArr[i]));
+                                statisticUserList.add(new UserData(userArr[i]));
                             }
                         }
                     }
@@ -110,7 +110,7 @@ public class UAStatisticClient {
     }
 
     public int getSendSize() {
-        return statisticList.size() - sendIndex;
+        return statisticUserList.size() - sendIndex;
     }
 
     public int getSendIndex() {
@@ -118,21 +118,21 @@ public class UAStatisticClient {
     }
 
     public int getTotalStatisticBeanSize(){
-        return statisticList.size();
+        return statisticUserList.size();
     }
 
-    public StatisticBean getNextStaticBean(){
-        StatisticBean bean = null;
-        if(sendIndex < statisticList.size()){
-            bean = statisticList.get(sendIndex);
+    public UserData getNextStatisticUser(){
+        UserData bean = null;
+        if(sendIndex < statisticUserList.size()){
+            bean = statisticUserList.get(sendIndex);
             sendIndex++;
         }
         return bean;
     }
 
     public boolean isLastData(){
-        Log.i(TAG, "isLastData sendIndex=" + sendIndex + ", statisticList.size()="+statisticList.size());
-        return sendIndex >= statisticList.size();
+        Log.i(TAG, "isLastData sendIndex=" + sendIndex + ", statisticUserList.size()="+ statisticUserList.size());
+        return sendIndex >= statisticUserList.size();
     }
 
     public int getSendSuccCount() {
