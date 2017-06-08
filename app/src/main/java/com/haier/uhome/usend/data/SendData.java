@@ -15,7 +15,7 @@ import java.util.Random;
 
 public class SendData {
 
-    private static final String APP_ID = "MB-UZHSH-0000";
+    public static final String APP_ID = "MB-UZHSH-0000";
     private static final String APP_KEY = "f50c76fbc8271d361e1f6b5973f54585";
     private static final String APP_CHANNEL = "yunying";
     private static final String APP_VERSIOIN = "2.1.1-2016052401";

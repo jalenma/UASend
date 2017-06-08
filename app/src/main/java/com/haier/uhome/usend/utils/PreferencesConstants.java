@@ -18,4 +18,7 @@ public class PreferencesConstants {
     public static final String SEND_SUCCESS_COUNT = "send_success_count";
     //发送失败总条数
     public static final String SEND_FAIL_COUNT = "send_fail_count";
+
+    //cid 文件修改时间
+    public static final String FILE_CID_MODIFY_TIME = "file_cid_modify_time";
 }

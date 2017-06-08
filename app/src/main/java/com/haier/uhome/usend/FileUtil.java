@@ -2,11 +2,14 @@ package com.haier.uhome.usend;
 
 import android.os.Environment;
 
+import com.haier.uhome.usend.log.Log;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,11 +22,13 @@ import java.io.OutputStream;
  */
 public class FileUtil {
 
-    public static File getPreferFileBaseDir(){
+    private static final String TAG = "UA-FileUtil";
+
+    public static File getPreferFileBaseDir() {
         return Environment.getExternalStorageDirectory();
     }
 
-    private static File openFile(String path) {
+    public static File openFile(String path) {
         return new File(getPreferFileBaseDir(), path);
     }
 
@@ -47,7 +52,9 @@ public class FileUtil {
         }
 
         FileInputStream fileInputStream = new FileInputStream(file);
-        return readInputStream(fileInputStream);
+        byte[] out = readInputStream(fileInputStream);
+        fileInputStream.close();
+        return out;
     }
 
     public static byte[] readInputStream(InputStream inputStream) throws IOException {
@@ -72,5 +79,47 @@ public class FileUtil {
         }
         output.flush();
         return count;
+    }
+
+    public interface IReadLine {
+        void readLine(String line);
+
+        void done();
+    }
+
+    public static void readLine(String path, IReadLine handle) {
+
+        File file = openFile(path);
+
+        FileReader reader = null;
+        BufferedReader br = null;
+        try {
+            reader = new FileReader(file);
+            br = new BufferedReader(reader);
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                handle.readLine(line);
+            }
+            Log.i(TAG, "read file done " + path);
+            handle.done();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            Log.e(TAG, "error", e);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e(TAG, "error", e);
+        } finally {
+            try {
+                if(br != null){
+                    br.close();
+                }
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

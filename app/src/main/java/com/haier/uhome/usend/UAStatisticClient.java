@@ -1,20 +1,32 @@
 package com.haier.uhome.usend;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.widget.Toast;
 
+import com.anye.greendao.gen.DaoMaster;
+import com.anye.greendao.gen.DaoSession;
+import com.haier.uhome.usend.data.SendData;
 import com.haier.uhome.usend.data.UserData;
 import com.haier.uhome.usend.log.Log;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
 
+import org.greenrobot.greendao.AbstractDaoMaster;
+import org.greenrobot.greendao.database.DatabaseOpenHelper;
+
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Author: majunling
@@ -24,6 +36,9 @@ import java.util.List;
 public class UAStatisticClient {
 
     private static final String TAG = "UA-UAStatisticClient";
+    public static final String USER_FILE_PATH = "/users.txt";
+    public static final String CID_FILE_PATH = "/cid.txt";
+
     private static UAStatisticClient sInstance;
 
     // 待发送总次数，user列表 - 已发送的数据
@@ -52,6 +67,11 @@ public class UAStatisticClient {
     private List<UserData> statisticUserList;
 
     private String todayStr;
+
+    private static final String APP_ID = SendData.APP_ID;
+    private static final int INSERT_SIZE = 1000;
+
+    DaoSession mDaoSession;
 
     private UAStatisticClient() {
     }
@@ -82,7 +102,7 @@ public class UAStatisticClient {
         return sInstance;
     }
 
-    public interface LoadDataCallback{
+    public interface LoadDataCallback {
         void onDone();
     }
 
@@ -91,11 +111,11 @@ public class UAStatisticClient {
             @Override
             public void run() {
                 super.run();
-                String users = FileUtil.readFile(FileStorageConst.USER_FILE_PATH);
+                String users = FileUtil.readFile(USER_FILE_PATH);
                 if (!TextUtils.isEmpty(users)) {
                     String[] userArr = users.split("\r\n");
                     Log.i(TAG, "User list :" + users);
-                    synchronized (statisticUserList){
+                    synchronized (statisticUserList) {
                         statisticUserList.clear();
                         if (userArr != null && userArr.length > 0) {
                             for (int i = 0; i < userArr.length; i++) {
@@ -109,6 +129,110 @@ public class UAStatisticClient {
         }.start();
     }
 
+    public void loadCidStatisticData(final LoadDataCallback callback) {
+        setDatabase();
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+
+                long lastFileModifyTime = PreferencesUtils.getLong(context, PreferencesConstants.FILE_CID_MODIFY_TIME);
+
+                File file = FileUtil.openFile(CID_FILE_PATH);
+                final long modifyTime = file.lastModified();
+                final List<UserData> dataList = new ArrayList<UserData>();
+
+                //文件时间发送变化，重新读取文件。
+                if (lastFileModifyTime != modifyTime) {
+                    fileModifyMsg();
+
+                    FileUtil.readLine(CID_FILE_PATH, new FileUtil.IReadLine() {
+                        @Override
+                        public void readLine(String line) {
+                            Pattern pattern = Pattern.compile("\"([\\w-]+)\"\\s*\"([\\w-]+)\"\\s*\"([\\w-]+)\"\\s*\"" +
+                                    "([\\w-]+)\"");
+                            Matcher matcher = pattern.matcher(line);
+                            //Log.i(TAG, "line =" + line);
+                            if (matcher.find()) {
+                                if (matcher.groupCount() < 4) {
+                                    return;
+                                }
+
+                                String appId = matcher.group(1);
+                                //非android appid，不处理
+                                if (!TextUtils.equals(APP_ID, appId)) {
+                                    return;
+                                }
+                                String cid = matcher.group(2);
+                                String uid = matcher.group(3);
+                                //String useTime = matcher.group(4);
+
+                                //Log.i(TAG, "appId=" + appId + ", cid = " + cid
+                                //        + ", uid = " + uid);
+                                //dataList.add(new UserData(uid, cid));
+
+                                dataList.add(new UserData("", cid));
+                                if(dataList.size() >= INSERT_SIZE){
+                                    Log.i(TAG, "read file size = " + dataList.size() );
+                                    mDaoSession.getUserDataDao().insertOrReplaceInTx(dataList);
+                                    dataList.clear();
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void done() {
+
+                            if(dataList.size() > 0){
+                                Log.i(TAG, "read file size = " + dataList.size() );
+                                mDaoSession.getUserDataDao().insertOrReplaceInTx(dataList);
+                                dataList.clear();
+                            }
+
+                            PreferencesUtils.putLong(context, PreferencesConstants.FILE_CID_MODIFY_TIME, modifyTime);
+                            statisticUserList.clear();
+                            statisticUserList = mDaoSession.getUserDataDao().loadAll();
+
+                            Log.i(TAG, "done c size=" + statisticUserList.size());
+                            callback.onDone();
+                        }
+                    });
+                } else {
+                    statisticUserList.clear();
+                    statisticUserList = mDaoSession.getUserDataDao().loadAll();
+                    Log.i(TAG, "done d size=" + statisticUserList.size());
+                    callback.onDone();
+                }
+
+            }
+        }.start();
+    }
+
+
+    private void fileModifyMsg(){
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                new Toast(context).makeText(context, "发现文件变动，重新计数", Toast.LENGTH_LONG).show();
+            }
+        });
+        resetStatisticData();
+        mDaoSession.getUserDataDao().deleteAll();
+    }
+
+
+    private void setDatabase() {
+        // 通过 DaoMaster 的内部类 DevOpenHelper，你可以得到一个便利的 SQLiteOpenHelper 对象。
+        // 可能你已经注意到了，你并不需要去编写「CREATE TABLE」这样的 SQL 语句，因为 greenDAO 已经帮你做了。
+        // 注意：默认的 DaoMaster.DevOpenHelper 会在数据库升级时，删除所有的表，意味着这将导致数据的丢失。
+        // 所以，在正式的项目中，你还应该做一层封装，来实现数据库的安全升级。
+        DaoMaster.DevOpenHelper mHelper = new DaoMaster.DevOpenHelper(context, "ua", null);
+        SQLiteDatabase db = mHelper.getWritableDatabase();
+        // 注意：该数据库连接属于 DaoMaster，所以多个 Session 指的是相同的数据库连接。
+        DaoMaster mDaoMaster = new DaoMaster(db);
+        mDaoSession = mDaoMaster.newSession();
+    }
+
     public int getSendSize() {
         return statisticUserList.size() - sendIndex;
     }
@@ -117,21 +241,21 @@ public class UAStatisticClient {
         return sendIndex;
     }
 
-    public int getTotalStatisticBeanSize(){
+    public int getTotalStatisticBeanSize() {
         return statisticUserList.size();
     }
 
-    public UserData getNextStatisticUser(){
+    public UserData getNextStatisticUser() {
         UserData bean = null;
-        if(sendIndex < statisticUserList.size()){
+        if (sendIndex < statisticUserList.size()) {
             bean = statisticUserList.get(sendIndex);
             sendIndex++;
         }
         return bean;
     }
 
-    public boolean isLastData(){
-        Log.i(TAG, "isLastData sendIndex=" + sendIndex + ", statisticUserList.size()="+ statisticUserList.size());
+    public boolean isLastData() {
+        Log.i(TAG, "isLastData sendIndex=" + sendIndex + ", statisticUserList.size()=" + statisticUserList.size());
         return sendIndex >= statisticUserList.size();
     }
 
@@ -210,8 +334,8 @@ public class UAStatisticClient {
             saveTodaySendCount(context, todySuccCount, todayFailCount);
         }
 
-        Log.i(TAG, "本文件以发送，成功："+sendSuccCount + ", 失败：" + sendFailCount
-        + ", 今天已发送，成功：" + todySuccCount + ", 失败：" + todayFailCount);
+        Log.i(TAG, "本文件以发送，成功：" + sendSuccCount + ", 失败：" + sendFailCount
+                + ", 今天已发送，成功：" + todySuccCount + ", 失败：" + todayFailCount);
     }
 
     private final int MSG_SAVE_SEND_DATA = 0X0001;

@@ -3,6 +3,7 @@ package com.haier.uhome.usend;
 import android.text.TextUtils;
 
 import com.haier.uhome.usend.data.SendData;
+import com.haier.uhome.usend.data.UserData;
 import com.haier.uhome.usend.utils.PhoneModel;
 
 import java.security.MessageDigest;
@@ -44,17 +45,17 @@ public class SendDataGenerator {
 
     /**
      * 生成统计数据
-     * @param uid
+     * @param
      * @return
      */
-    public static SendData generate(String uid){
+    public static SendData generate(UserData userData){
         final String phoneModel = PhoneModel.getInstance().getRandomPhoneModel();
-        String cid = generateCidByUid(uid, phoneModel);
+        String cid = userData.getCid();//generateCidByUid(userData.getUserId(), phoneModel);
         String netType = "WIFI";
         String location = "";
         long session = generateSession();
 
-        return new SendData(uid, cid, phoneModel, session, netType, location);
+        return new SendData(userData.getUserId(), cid, phoneModel, session, netType, location);
     }
 
     /**

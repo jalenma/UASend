@@ -28,7 +28,6 @@ public class HttpRequestManager {
     static {
         client.setTimeout(DEFUALT_TIMEOUT);
         client.setConnectTimeout(DEFUALT_TIMEOUT);
-        client.setProxy("61.53.137.50", 8080);
     }
 
     public HttpRequestManager() {

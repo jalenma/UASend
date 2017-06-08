@@ -1,8 +1,23 @@
 apply plugin: 'com.android.application'
 apply plugin: 'android-apt'
+apply plugin: 'org.greenrobot.greendao'
 
 def releaseTime() {
     return new Date().format("yyyy_MM_dd", TimeZone.getTimeZone("UTC"))
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.greenrobot:greendao-gradle-plugin:3.0.0'
+    }
+}
+greendao {
+    schemaVersion 1
+    daoPackage 'com.anye.greendao.gen'
+    targetGenDir 'src/main/java'
 }
 
 android {
@@ -54,8 +69,9 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'org.greenrobot:eventbus:3.0.0'
     compile 'com.jakewharton:butterknife:8.4.0'
+    compile'org.greenrobot:greendao:3.0.1'
+    compile'org.greenrobot:greendao-generator:3.0.0'
+
     apt 'com.jakewharton:butterknife-compiler:8.4.0'
-
-
     testCompile 'junit:junit:4.12'
 }

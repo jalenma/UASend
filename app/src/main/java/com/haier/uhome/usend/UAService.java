@@ -62,7 +62,7 @@ public class UAService extends Service {
                 return;
             }
             UserData userDate = statisticClient.getNextStatisticUser();
-            SendData sendData = SendDataGenerator.generate(userDate.getUserId());
+            SendData sendData = SendDataGenerator.generate(userDate);
             Message msg = handler.obtainMessage(MSG_SEND_LOOP);
             msg.obj = sendData;
             handler.sendMessage(msg);
@@ -156,21 +156,23 @@ public class UAService extends Service {
     //获取开关上报开关
     private void loadSendSwitch(){
         //获取配置数据
-        SettingClient.getInstance().getSettings(this, new ResultCallback<SettingInfo>() {
-            @Override
-            public void onSuccess(SettingInfo result) {
-                if (!result.isUaSwitch() || !result.isOtherUaSwitch()) {
-                    notifySendError("开关：" + result.isUaSwitch() + ", 开关other:" + result.isOtherUaSwitch(), 0, 0);
-                    return;
-                }
-                handler.sendEmptyMessage(MSG_FETCH_SWITCH_DONE);
-            }
+//        SettingClient.getInstance().getSettings(this, new ResultCallback<SettingInfo>() {
+//            @Override
+//            public void onSuccess(SettingInfo result) {
+//                if (!result.isUaSwitch() || !result.isOtherUaSwitch()) {
+//                    notifySendError("开关：" + result.isUaSwitch() + ", 开关other:" + result.isOtherUaSwitch(), 0, 0);
+//                    return;
+//                }
+//                handler.sendEmptyMessage(MSG_FETCH_SWITCH_DONE);
+//            }
+//
+//            @Override
+//            public void onFailure(SettingInfo result) {
+//                notifySendError("获取开关失败", 0, 0);
+//            }
+//        });
 
-            @Override
-            public void onFailure(SettingInfo result) {
-                notifySendError("获取开关失败", 0, 0);
-            }
-        });
+        handler.sendEmptyMessage(MSG_FETCH_SWITCH_DONE);
     }
 
     private void loadSendParam() {
@@ -186,12 +188,21 @@ public class UAService extends Service {
     }
 
     private void loadUserId() {
-        UAStatisticClient.getInstance().loadStatisticData(new UAStatisticClient.LoadDataCallback() {
+//        UAStatisticClient.getInstance().loadStatisticData(new UAStatisticClient.LoadDataCallback() {
+//            @Override
+//            public void onDone() {
+//                handler.sendEmptyMessage(MSG_LOAD_STATISTIC_DONE);
+//            }
+//        });
+
+        UAStatisticClient.getInstance().loadCidStatisticData(new UAStatisticClient.LoadDataCallback() {
             @Override
             public void onDone() {
+                Log.i(TAG, "load static done total = " + UAStatisticClient.getInstance().getSendSize());
                 handler.sendEmptyMessage(MSG_LOAD_STATISTIC_DONE);
             }
         });
+
     }
 
     private void sendRequestTask() {
@@ -216,6 +227,7 @@ public class UAService extends Service {
 
         Log.i(TAG, "UA-start");
 
+        timer = new Timer();
         timer.schedule(sendTimerTask, (long) (sendTimeInterval * 1000), (long) (sendTimeInterval * 1000));
     }
 

@@ -91,10 +91,38 @@ public class UARequest {
             }
         };
 
-        RequestAppStartResult appStartResult = new RequestAppStartResult() {
+        /*RequestAppStartResult appStartResult = new RequestAppStartResult() {
             @Override
             public void onSuccess(int code, String response) {
                 sendUserStartRequest(context, sendData, userStartResult);
+            }
+
+            @Override
+            public void onFailure(int code, String response) {
+                if (null != callback) {
+                    callback.onFailure(code, response);
+                }
+            }
+        };*/
+        RequestAppStartResult appStartResult = new RequestAppStartResult() {
+            @Override
+            public void onSuccess(int code, String response) {
+                //sendUserStartRequest(context, sendData, userStartResult);
+                sendAppUseRequest(context, sendData, new RequestAppUseResult() {
+                    @Override
+                    public void onSuccess(int code, String response) {
+                        if (null != callback) {
+                            callback.onSuccess(code, response);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(int code, String response) {
+                        if (null != callback) {
+                            callback.onFailure(code, response);
+                        }
+                    }
+                });
             }
 
             @Override
