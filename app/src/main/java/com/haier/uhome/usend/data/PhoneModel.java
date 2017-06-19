@@ -1,4 +1,4 @@
-package com.haier.uhome.usend.utils;
+package com.haier.uhome.usend.data;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -50,7 +50,7 @@ public class PhoneModel {
      */
     public String getRandomPhoneModel(){
         Random random = new Random();
-        int index = random.nextInt(phoneModelArr.length - 1);
+        int index = random.nextInt(phoneModelArr.length);
         Log.i("jalen", phoneModelArr[index]);
         return phoneModelArr[index];
     }

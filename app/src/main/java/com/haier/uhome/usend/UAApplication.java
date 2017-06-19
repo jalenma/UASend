@@ -2,8 +2,10 @@ package com.haier.uhome.usend;
 
 import android.app.Application;
 
+import com.haier.uhome.usend.data.Channels;
+import com.haier.uhome.usend.staticfile.UAStatisticClient;
 import com.haier.uhome.usend.log.CrashHandler;
-import com.haier.uhome.usend.utils.PhoneModel;
+import com.haier.uhome.usend.data.PhoneModel;
 
 /**
  * @Author: majunling
@@ -17,6 +19,7 @@ public class UAApplication extends Application {
         super.onCreate();
         CrashHandler.getInstance().init(this);
         PhoneModel.init(this);
+        Channels.loadChannels(this);
         UAStatisticClient.getInstance().init(this);
     }
 }

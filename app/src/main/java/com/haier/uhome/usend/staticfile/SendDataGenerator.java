@@ -1,10 +1,11 @@
-package com.haier.uhome.usend;
+package com.haier.uhome.usend.staticfile;
 
 import android.text.TextUtils;
 
+import com.haier.uhome.usend.data.Channels;
 import com.haier.uhome.usend.data.SendData;
 import com.haier.uhome.usend.data.UserData;
-import com.haier.uhome.usend.utils.PhoneModel;
+import com.haier.uhome.usend.data.PhoneModel;
 
 import java.security.MessageDigest;
 import java.util.Calendar;
@@ -13,7 +14,6 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- *
  * @Author: majunling
  * @Data: 2017/1/19
  * @Description:
@@ -45,21 +45,34 @@ public class SendDataGenerator {
 
     /**
      * 生成统计数据
+     *
      * @param
      * @return
      */
-    public static SendData generate(UserData userData){
-        final String phoneModel = PhoneModel.getInstance().getRandomPhoneModel();
+    public static SendData generate(UserData userData) {
+        String phoneModel = PhoneModel.getInstance().getRandomPhoneModel();
         String cid = userData.getCid();//generateCidByUid(userData.getUserId(), phoneModel);
         String netType = "WIFI";
         String location = "";
+        String channel = Channels.getRadomChannel();
         long session = generateSession();
 
-        return new SendData(userData.getUserId(), cid, phoneModel, session, netType, location);
+        return new SendData(userData.getUserId(), cid, channel, phoneModel, session, netType, location);
+    }
+
+    public static SendData generate(UserData userData, String phoneModel) {
+        String cid = userData.getCid();//generateCidByUid(userData.getUserId(), phoneModel);
+        String netType = "WIFI";
+        String location = "";
+        String channel = Channels.getRadomChannel();
+        long session = generateSession();
+
+        return new SendData(userData.getUserId(), cid, channel, phoneModel, session, netType, location);
     }
 
     /**
      * 随机生成session
+     *
      * @return
      */
     public static long generateSession() {
@@ -75,18 +88,19 @@ public class SendDataGenerator {
 
     /**
      * 生成clientid
+     *
      * @param uid
      * @param phoneModel
      * @return
      */
-    private static String generateCidByUid(String uid, String phoneModel){
+    public static String generateCidByUid(String uid, String phoneModel) {
 
         String source = uid;
         if (!TextUtils.isEmpty(uid)) {
             StringBuffer outMacString = new StringBuffer();
             StringBuffer outNumString = new StringBuffer();
             String key = "0";
-            for(int i = 0; i< uid.length(); i++){
+            for (int i = 0; i < uid.length(); i++) {
                 key = String.valueOf(uid.charAt(i));
                 outMacString.append(macMap.get(key));
                 outNumString.append(numMap.get(key));
@@ -98,6 +112,11 @@ public class SendDataGenerator {
         }
         String cid = string2MD5(source);
         return cid.toUpperCase();
+    }
+
+    public static String generateRadomCid() {
+        String source = String.valueOf(System.currentTimeMillis());
+        return string2MD5(source).toUpperCase();
     }
 
     /***
@@ -130,7 +149,7 @@ public class SendDataGenerator {
     }
 
     //数字转化成0-F字符串，类似mac字符串
-    private static Map<String, String> macMap = new HashMap(){
+    private static Map<String, String> macMap = new HashMap() {
         {
             put("0", "1C");
             put("1", "D0");
@@ -145,7 +164,7 @@ public class SendDataGenerator {
         }
     };
     //数字转化成另外一组数字
-    private static Map<String, String> numMap = new HashMap(){
+    private static Map<String, String> numMap = new HashMap() {
         {
             put("0", "5");
             put("1", "9");

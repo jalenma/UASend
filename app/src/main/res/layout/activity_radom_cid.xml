@@ -2,6 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_radom_cid"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingBottom="@dimen/activity_vertical_margin"
@@ -9,48 +10,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:orientation="vertical"
-    tools:context="com.haier.uhome.usend.staticfile.SendActivity">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:text="@string/run_count"/>
-
-        <EditText
-            android:id="@+id/et_run_count"
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            android:inputType="number"/>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:text="@string/run_time"/>
-
-        <EditText
-            android:id="@+id/et_run_time"
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            android:inputType="number"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/time_unit"/>
-
-    </LinearLayout>
+    tools:context="com.haier.uhome.usend.staticcid.RadomCidActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -74,36 +34,56 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="条数:"/>
+
+        <EditText
+            android:id="@+id/et_send_count"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:inputType="number"/>
+
+    </LinearLayout>
+
     <Button
         android:id="@+id/btn_send"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="重新开始"/>
+
     <Button
         android:id="@+id/btn_pause"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="暂停"/>
+
     <Button
-        android:id="@+id/btn_continue"
+        android:id="@+id/btn_go_on"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="继续上次"/>
 
-    <TextView
-        android:id="@+id/tv_current_result"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    <Button
+        android:id="@+id/btn_export"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="导出"/>
+
+    <Button
+        android:id="@+id/btn_clean"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="清空"/>
 
     <TextView
-        android:id="@+id/tv_today_total"
+        android:id="@+id/tv_result"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
-
-    <TextView
-        android:id="@+id/tv_send_total"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
 
 </LinearLayout>

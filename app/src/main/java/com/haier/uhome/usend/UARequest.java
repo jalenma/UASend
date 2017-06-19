@@ -1,25 +1,16 @@
 package com.haier.uhome.usend;
 
 import android.content.Context;
-import android.text.TextUtils;
 
 import com.haier.uhome.usend.data.SendData;
 import com.haier.uhome.usend.data.SendHeader;
 import com.haier.uhome.usend.log.Log;
-import com.haier.uhome.usend.utils.PhoneModel;
 
 import org.apache.http.Header;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -60,6 +51,49 @@ public class UARequest {
         }
         return headers;
     }
+
+    /**
+     * app启动，app使用
+     * @param context
+     * @param sendData
+     * @param callback
+     */
+    public void sendAppStartUse(final Context context, final SendData sendData, final RequestResult
+            callback) {
+
+        RequestAppStartResult appStartResult = new RequestAppStartResult() {
+            @Override
+            public void onSuccess(int code, String response) {
+                //App use 事件
+                sendAppUseRequest(context, sendData, new RequestAppUseResult() {
+                    @Override
+                    public void onSuccess(int code, String response) {
+                        if (null != callback) {
+                            callback.onSuccess(code, response);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(int code, String response) {
+                        if (null != callback) {
+                            callback.onFailure(code, response);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(int code, String response) {
+                if (null != callback) {
+                    callback.onFailure(code, response);
+                }
+            }
+        };
+
+        //app启动(app start)请求
+        sendAppStartRequest(context, sendData, appStartResult);
+    }
+
 
     public void sendAppAndUserStartBatch(final Context context, final SendData sendData, final RequestResult callback) {
 

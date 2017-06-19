@@ -30,6 +30,7 @@ public class SendData {
     private String uid;
     private String clientId;
     private String phoneModel;
+    private String channel;
     private long session;
     private String netType = "WIFI";
     private String location = "";
@@ -43,11 +44,15 @@ public class SendData {
     //页面停留数据
     private String pageStayTime;
 
+    private long appStartEventTime;
+
     private Random random;
 
-    public SendData(String uid, String clientId, String phoneModel, long session, String netType, String location) {
+    public SendData(String uid, String clientId, String channel, String phoneModel,
+                    long session, String netType, String location) {
         this.uid = uid;
         this.clientId = clientId;
+        this.channel = channel;
         this.phoneModel = phoneModel;
         this.session = session;
         this.netType = netType;
@@ -57,11 +62,11 @@ public class SendData {
         generateData();
     }
 
-    private void initHeader(){
+    private void initHeader() {
         header = new SendHeader();
         header.setAppId(APP_ID);
         header.setAppKey(APP_KEY);
-        header.setAppChannel(APP_CHANNEL);
+        header.setAppChannel(channel);
         header.setAppVersioin(APP_VERSIOIN);
         header.setSession(String.valueOf(session));
         header.setClientId(clientId);
@@ -74,8 +79,8 @@ public class SendData {
     }
 
     public void generateData() {
-        final long appStartEventTime = session + random.nextInt(10100) % 10100;
-        final long userStartEventTime = appStartEventTime + random.nextInt(10100) % 10100;
+        appStartEventTime = session + random.nextInt(10100) % 10100;
+        long userStartEventTime = appStartEventTime + random.nextInt(10100) % 10100;
 
         appStartData = assembleAppStartJson(getFormateTime(appStartEventTime), netType, location);
         userStartData = assembleUserStartJson(uid, getFormateTime(userStartEventTime), netType);
@@ -84,7 +89,7 @@ public class SendData {
         long endTimeInt = startTimeInt + 10100 + random.nextInt(50100) % 50100;
         String pageName = "com.haier.uhome.uplus.ui.activity.TabDeviceListActivity";
         pageStayTime = assemblePageStayJson(uid, getFormateTime(startTimeInt), getFormateTime(endTimeInt), pageName,
-            netType);
+                netType);
     }
 
     /**
@@ -198,5 +203,9 @@ public class SendData {
 
     public String getUserStartData() {
         return userStartData;
+    }
+
+    public long getAppStartEventTime() {
+        return appStartEventTime;
     }
 }

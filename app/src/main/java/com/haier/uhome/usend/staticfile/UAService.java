@@ -1,4 +1,4 @@
-package com.haier.uhome.usend;
+package com.haier.uhome.usend.staticfile;
 
 import android.app.AlertDialog;
 import android.app.Service;
@@ -9,19 +9,16 @@ import android.os.Message;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.haier.uhome.usend.UARequest;
 import com.haier.uhome.usend.data.SendData;
 import com.haier.uhome.usend.data.UserData;
 import com.haier.uhome.usend.events.EventSendStatus;
 import com.haier.uhome.usend.log.Log;
-import com.haier.uhome.usend.setting.ResultCallback;
-import com.haier.uhome.usend.setting.SettingClient;
-import com.haier.uhome.usend.setting.SettingInfo;
 import com.haier.uhome.usend.utils.PreferencesConstants;
 import com.haier.uhome.usend.utils.PreferencesUtils;
 
 import org.greenrobot.eventbus.EventBus;
 
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -92,7 +89,7 @@ public class UAService extends Service {
             switch (msg.what) {
                 case MSG_SEND_LOOP:
                     SendData sendData = (SendData) msg.obj;
-                    UARequest.getInstance().sendAppAndUserStartBatch(UAService.this, sendData, resultCallback);
+                    UARequest.getInstance().sendAppStartUse(UAService.this, sendData, resultCallback);
                     break;
                 case MSG_LOAD_STATISTIC_DONE:
                     sendRequestTask();
