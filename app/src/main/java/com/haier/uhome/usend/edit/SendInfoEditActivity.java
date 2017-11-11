@@ -1,4 +1,4 @@
-package com.haier.uhome.usend.channelEdit;
+package com.haier.uhome.usend.edit;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import com.haier.uhome.usend.R;
+import com.haier.uhome.usend.data.AppInfo;
 import com.haier.uhome.usend.data.Channels;
 
 import java.util.regex.Pattern;
@@ -18,21 +19,24 @@ import java.util.regex.Pattern;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import butterknife.OnTextChanged;
 
-public class ChannelEditActivity extends AppCompatActivity {
+public class SendInfoEditActivity extends AppCompatActivity {
 
     @BindView(R.id.btn_save)
     Button btnSave;
     @BindView(R.id.et_channels)
     EditText etChannels;
+    @BindView(R.id.et_app_version)
+    EditText etAppVer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_channel_edit);
+        setContentView(R.layout.activity_send_info_edit);
 
         ButterKnife.bind(this);
+
+        etAppVer.setText(AppInfo.getInstance().getAppVer());
 
         etChannels.setText(Channels.getChannelsString(this));
 
@@ -70,10 +74,23 @@ public class ChannelEditActivity extends AppCompatActivity {
 
     @OnClick(R.id.btn_save)
     public void save() {
+        saveChannel();
+        saveAppVer();
+    }
+
+    private void saveChannel(){
         String channels = etChannels.getText().toString();
         if(TextUtils.isEmpty(channels)){
             return;
         }
         Channels.saveChannels(this, channels.split(","));
+    }
+
+    private void saveAppVer(){
+        String ver = etAppVer.getText().toString();
+        if(TextUtils.isEmpty(ver)){
+            return;
+        }
+        AppInfo.getInstance().setAppVer(ver);
     }
 }

@@ -76,14 +76,9 @@ public class SendDataGenerator {
      * @return
      */
     public static long generateSession() {
-        Random random = new Random(System.currentTimeMillis());
-        long max = maxTime - minTime;
-        long rand = Math.abs(random.nextLong());
-        rand = minTime + rand % max;
-        if (rand > maxTime) {
-            rand = maxTime;
-        }
-        return rand;
+        long base = System.currentTimeMillis();
+        Random random = new Random(base);
+        return base - random.nextInt(60 * 60 * 1000) ;
     }
 
     /**

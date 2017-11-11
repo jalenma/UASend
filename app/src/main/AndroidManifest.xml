@@ -52,7 +52,7 @@
             android:name="SECRET_KEY"
             android:value="29C323851A69F5433A595BEC34A2D742"/>
 
-        <activity android:name=".channelEdit.ChannelEditActivity">
+        <activity android:name=".edit.SendInfoEditActivity">
         </activity>
     </application>
 

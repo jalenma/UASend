@@ -2,6 +2,7 @@ package com.haier.uhome.usend;
 
 import android.app.Application;
 
+import com.haier.uhome.usend.data.AppInfo;
 import com.haier.uhome.usend.data.Channels;
 import com.haier.uhome.usend.staticfile.UAStatisticClient;
 import com.haier.uhome.usend.log.CrashHandler;
@@ -20,6 +21,7 @@ public class UAApplication extends Application {
         CrashHandler.getInstance().init(this);
         PhoneModel.init(this);
         Channels.loadChannels(this);
+        AppInfo.getInstance().init(this);
         UAStatisticClient.getInstance().init(this);
     }
 }

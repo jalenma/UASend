@@ -204,6 +204,7 @@ public class RadomCidService extends Service {
     }
 
     private String getSendLog() {
+        "".replace("", "");
         return "总条数：" + total + ", 已发送：" + alreadySendCount;
     }
 

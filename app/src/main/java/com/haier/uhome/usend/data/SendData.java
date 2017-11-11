@@ -67,7 +67,7 @@ public class SendData {
         header.setAppId(APP_ID);
         header.setAppKey(APP_KEY);
         header.setAppChannel(channel);
-        header.setAppVersioin(APP_VERSIOIN);
+        header.setAppVersioin(AppInfo.getInstance().getAppVer());
         header.setSession(String.valueOf(session));
         header.setClientId(clientId);
         header.setUid(uid);

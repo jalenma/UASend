@@ -8,6 +8,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
@@ -173,7 +174,11 @@ public class RadomCidActivity extends AppCompatActivity {
                         BufferedWriter bw = null;
                         bw = new BufferedWriter(new FileWriter(file));
                         for (SendCidData data : list) {
-                            bw.write(data.cid + "\n");
+                            bw.write("\"MB-UZHSH-0000\"\t" +
+                                    "\"" + data.cid + "\"" + "\t" +
+                                    "\"null\"" + "\t" +
+                                    "\"" + data.getTime() + "\"" +
+                                    "\n");
                         }
                         bw.close();
                     } catch (IOException e) {
@@ -228,8 +233,14 @@ public class RadomCidActivity extends AppCompatActivity {
 
         @Override
         public void afterTextChanged(Editable s) {
-            int value = Integer.valueOf(s.toString());
-            btnStart.setEnabled(value > 0);
+
+            boolean enable = false;
+            if (!TextUtils.isEmpty(s.toString())) {
+                int value = Integer.valueOf(s.toString());
+                enable = value > 0;
+            }
+
+            btnStart.setEnabled(false);
         }
     }
 
@@ -239,8 +250,11 @@ public class RadomCidActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if(num >= RequestClient.getSendCount(RadomCidActivity.this)){
+                    if (num >= RequestClient.getSendCount(RadomCidActivity.this)) {
                         Toast.makeText(RadomCidActivity.this, "发送完成", Toast.LENGTH_LONG).show();
+                        btnStart.setEnabled(true);
+                        btnGoOn.setEnabled(true);
+                        btnPause.setEnabled(false);
                     }
                     tvSendResult.setText("已发送：" + num + "条");
                 }

@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
-import com.haier.uhome.usend.channelEdit.ChannelEditActivity;
+import com.haier.uhome.usend.edit.SendInfoEditActivity;
 import com.haier.uhome.usend.staticfile.SendActivity;
 import com.haier.uhome.usend.staticcid.RadomCidActivity;
 
@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.btn_channel_edit)
     public void gotoChannelEdit(){
         Intent it = new Intent();
-        it.setClass(this, ChannelEditActivity.class);
+        it.setClass(this, SendInfoEditActivity.class);
         startActivity(it);
     }
 

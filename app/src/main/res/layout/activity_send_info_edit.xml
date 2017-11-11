@@ -10,7 +10,22 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:orientation="vertical"
-    tools:context="com.haier.uhome.usend.channelEdit.ChannelEditActivity">
+    tools:context="com.haier.uhome.usend.edit.SendInfoEditActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="版本号"/>
+    <EditText
+        android:id="@+id/et_app_version"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="渠道"/>
 
     <EditText
         android:id="@+id/et_channels"
